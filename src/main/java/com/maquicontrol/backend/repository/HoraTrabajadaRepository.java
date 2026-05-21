@@ -8,6 +8,7 @@ import java.util.List;
 
 @Repository
 public interface HoraTrabajadaRepository extends JpaRepository<HoraTrabajada, Long> {
+    List<HoraTrabajada> findByOperadorId(Long operadorId);
     List<HoraTrabajada> findByOperadorNombre(String operadorNombre);
     List<HoraTrabajada> findByMaquinaNombre(String maquinaNombre);
     void deleteByOperadorNombre(String operadorNombre);

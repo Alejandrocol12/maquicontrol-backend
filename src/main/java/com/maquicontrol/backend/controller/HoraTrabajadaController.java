@@ -21,7 +21,12 @@ public class HoraTrabajadaController {
         return horaService.obtenerTodas();
     }
 
-    @GetMapping("/operador/{nombre}")
+    @GetMapping("/operador/{id}")
+    public List<HoraTrabajada> obtenerPorOperadorId(@PathVariable Long id) {
+        return horaService.obtenerPorOperadorId(id);
+    }
+
+    @GetMapping("/operador/nombre/{nombre}")
     public List<HoraTrabajada> obtenerPorOperador(@PathVariable String nombre) {
         return horaService.obtenerPorOperador(nombre);
     }

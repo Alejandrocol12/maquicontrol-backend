@@ -27,6 +27,10 @@ public class HoraTrabajadaService {
         return horaRepository.findById(id);
     }
 
+    public List<HoraTrabajada> obtenerPorOperadorId(Long operadorId) {
+        return horaRepository.findByOperadorId(operadorId);
+    }
+
     public List<HoraTrabajada> obtenerPorOperador(String operadorNombre) {
         return horaRepository.findByOperadorNombre(operadorNombre);
     }

@@ -1,0 +1,43 @@
+package com.maquicontrol.backend.service;
+
+import com.maquicontrol.backend.model.Periodo;
+import com.maquicontrol.backend.repository.PeriodoRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class PeriodoService {
+
+    @Autowired
+    private PeriodoRepository periodoRepository;
+
+    public List<Periodo> obtenerPorOperador(Long operadorId) {
+        return periodoRepository.findByOperadorId(operadorId);
+    }
+
+    public Optional<Periodo> obtenerActivo(Long operadorId) {
+        return periodoRepository.findByOperadorIdAndEstado(operadorId, "activo");
+    }
+
+    public Periodo crear(Long operadorId, Periodo periodo) {
+        periodo.setOperadorId(operadorId);
+        return periodoRepository.save(periodo);
+    }
+
+    public Periodo actualizar(Long id, Periodo datos) {
+        Periodo p = periodoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Periodo no encontrado"));
+        if (datos.getEstado() != null) p.setEstado(datos.getEstado());
+        if (datos.getFechaFin() != null) p.setFechaFin(datos.getFechaFin());
+        if (datos.getHorasTotal() != 0) p.setHorasTotal(datos.getHorasTotal());
+        if (datos.getSalarioBruto() != 0) p.setSalarioBruto(datos.getSalarioBruto());
+        if (datos.getSalarioNeto() != 0) p.setSalarioNeto(datos.getSalarioNeto());
+        if (datos.getNota() != null) p.setNota(datos.getNota());
+        if (datos.getDesdeHoraId() != null) p.setDesdeHoraId(datos.getDesdeHoraId());
+        if (datos.getAnticipos() != null) p.setAnticipos(datos.getAnticipos());
+        return periodoRepository.save(p);
+    }
+}

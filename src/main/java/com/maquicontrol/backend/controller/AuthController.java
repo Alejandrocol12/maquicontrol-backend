@@ -9,6 +9,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -57,12 +58,14 @@ public class AuthController {
     }
 
     private Map<String, Object> userDto(Usuario u) {
-        return Map.of(
-                "id", u.getId(),
-                "nombre", u.getNombre(),
-                "empresa", u.getEmpresa(),
-                "email", u.getEmail(),
-                "rol", u.getRol()
-        );
+        Map<String, Object> dto = new HashMap<>();
+        dto.put("id", u.getId());
+        dto.put("nombre", u.getNombre());
+        dto.put("empresa", u.getEmpresa());
+        dto.put("email", u.getEmail());
+        dto.put("rol", u.getRol());
+        dto.put("activo", u.isActivo());
+        dto.put("operadorId", u.getOperadorId());
+        return dto;
     }
 }

@@ -11,6 +11,8 @@ public class HoraTrabajada {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private Long operadorId;
+    private Long maquinaId;
     private String operadorNombre;
     private String maquinaNombre;
     private double horas;
@@ -23,6 +25,12 @@ public class HoraTrabajada {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public Long getOperadorId() { return operadorId; }
+    public void setOperadorId(Long operadorId) { this.operadorId = operadorId; }
+
+    public Long getMaquinaId() { return maquinaId; }
+    public void setMaquinaId(Long maquinaId) { this.maquinaId = maquinaId; }
 
     public String getOperadorNombre() { return operadorNombre; }
     public void setOperadorNombre(String operadorNombre) { this.operadorNombre = operadorNombre; }
