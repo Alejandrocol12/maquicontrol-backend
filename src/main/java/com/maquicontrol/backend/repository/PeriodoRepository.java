@@ -9,6 +9,8 @@ import java.util.Optional;
 
 @Repository
 public interface PeriodoRepository extends JpaRepository<Periodo, Long> {
+    List<Periodo> findByUsuarioIdAndOperadorId(Long usuarioId, Long operadorId);
+    Optional<Periodo> findByUsuarioIdAndOperadorIdAndEstado(Long usuarioId, Long operadorId, String estado);
     List<Periodo> findByOperadorId(Long operadorId);
     Optional<Periodo> findByOperadorIdAndEstado(Long operadorId, String estado);
 }

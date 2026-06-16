@@ -14,19 +14,20 @@ public class IngresoService {
     @Autowired
     private IngresoRepository ingresoRepository;
 
-    public List<Ingreso> obtenerTodos() {
-        return ingresoRepository.findAll();
+    public List<Ingreso> obtenerTodos(Long userId) {
+        return ingresoRepository.findByUsuarioId(userId);
     }
 
     public Optional<Ingreso> obtenerPorId(Long id) {
         return ingresoRepository.findById(id);
     }
 
-    public List<Ingreso> obtenerPorMaquina(String maquinaNombre) {
-        return ingresoRepository.findByMaquinaNombre(maquinaNombre);
+    public List<Ingreso> obtenerPorMaquina(Long userId, String maquinaNombre) {
+        return ingresoRepository.findByUsuarioIdAndMaquinaNombre(userId, maquinaNombre);
     }
 
-    public Ingreso guardar(Ingreso ingreso) {
+    public Ingreso guardar(Long userId, Ingreso ingreso) {
+        ingreso.setUsuarioId(userId);
         ingreso.setTotal(ingreso.getCantidad() * ingreso.getValorUnitario());
         return ingresoRepository.save(ingreso);
     }

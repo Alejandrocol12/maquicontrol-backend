@@ -14,19 +14,20 @@ public class SalarioService {
     @Autowired
     private SalarioRepository salarioRepository;
 
-    public List<Salario> obtenerTodos() {
-        return salarioRepository.findAll();
+    public List<Salario> obtenerTodos(Long userId) {
+        return salarioRepository.findByUsuarioId(userId);
     }
 
     public Optional<Salario> obtenerPorId(Long id) {
         return salarioRepository.findById(id);
     }
 
-    public List<Salario> obtenerPorOperador(String operadorNombre) {
-        return salarioRepository.findByOperadorNombre(operadorNombre);
+    public List<Salario> obtenerPorOperador(Long userId, String operadorNombre) {
+        return salarioRepository.findByUsuarioIdAndOperadorNombre(userId, operadorNombre);
     }
 
-    public Salario guardar(Salario salario) {
+    public Salario guardar(Long userId, Salario salario) {
+        salario.setUsuarioId(userId);
         salario.setTotalBruto(salario.getHorasTrabajadas() * salario.getValorHora());
         salario.setTotalNeto(salario.getTotalBruto() - salario.getAnticipos());
         return salarioRepository.save(salario);

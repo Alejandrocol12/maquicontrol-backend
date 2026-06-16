@@ -4,6 +4,7 @@ import com.maquicontrol.backend.model.HoraTrabajada;
 import com.maquicontrol.backend.service.HoraTrabajadaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,13 +18,15 @@ public class HoraTrabajadaController {
     private HoraTrabajadaService horaService;
 
     @GetMapping
-    public List<HoraTrabajada> obtenerTodas() {
-        return horaService.obtenerTodas();
+    public List<HoraTrabajada> obtenerTodas(Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return horaService.obtenerTodas(userId);
     }
 
     @GetMapping("/operador/{id}")
-    public List<HoraTrabajada> obtenerPorOperadorId(@PathVariable Long id) {
-        return horaService.obtenerPorOperadorId(id);
+    public List<HoraTrabajada> obtenerPorOperadorId(@PathVariable Long id, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return horaService.obtenerPorOperadorId(userId, id);
     }
 
     @GetMapping("/operador/nombre/{nombre}")
@@ -32,13 +35,15 @@ public class HoraTrabajadaController {
     }
 
     @GetMapping("/maquina/{nombre}")
-    public List<HoraTrabajada> obtenerPorMaquina(@PathVariable String nombre) {
-        return horaService.obtenerPorMaquina(nombre);
+    public List<HoraTrabajada> obtenerPorMaquina(@PathVariable String nombre, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return horaService.obtenerPorMaquina(userId, nombre);
     }
 
     @PostMapping
-    public HoraTrabajada registrar(@RequestBody HoraTrabajada hora) {
-        return horaService.guardar(hora);
+    public HoraTrabajada registrar(@RequestBody HoraTrabajada hora, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return horaService.guardar(userId, hora);
     }
 
     @DeleteMapping("/{id}")

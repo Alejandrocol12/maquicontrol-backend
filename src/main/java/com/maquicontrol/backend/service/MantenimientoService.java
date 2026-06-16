@@ -14,19 +14,20 @@ public class MantenimientoService {
     @Autowired
     private MantenimientoRepository mantenimientoRepository;
 
-    public List<Mantenimiento> obtenerTodos() {
-        return mantenimientoRepository.findAll();
+    public List<Mantenimiento> obtenerTodos(Long userId) {
+        return mantenimientoRepository.findByUsuarioId(userId);
     }
 
     public Optional<Mantenimiento> obtenerPorId(Long id) {
         return mantenimientoRepository.findById(id);
     }
 
-    public List<Mantenimiento> obtenerPorMaquina(String maquinaNombre) {
-        return mantenimientoRepository.findByMaquinaNombre(maquinaNombre);
+    public List<Mantenimiento> obtenerPorMaquina(Long userId, String maquinaNombre) {
+        return mantenimientoRepository.findByUsuarioIdAndMaquinaNombre(userId, maquinaNombre);
     }
 
-    public Mantenimiento guardar(Mantenimiento mantenimiento) {
+    public Mantenimiento guardar(Long userId, Mantenimiento mantenimiento) {
+        mantenimiento.setUsuarioId(userId);
         return mantenimientoRepository.save(mantenimiento);
     }
 

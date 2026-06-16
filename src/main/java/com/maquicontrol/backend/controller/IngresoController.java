@@ -4,6 +4,7 @@ import com.maquicontrol.backend.model.Ingreso;
 import com.maquicontrol.backend.service.IngresoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,8 +18,9 @@ public class IngresoController {
     private IngresoService ingresoService;
 
     @GetMapping
-    public List<Ingreso> obtenerTodos() {
-        return ingresoService.obtenerTodos();
+    public List<Ingreso> obtenerTodos(Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return ingresoService.obtenerTodos(userId);
     }
 
     @GetMapping("/{id}")
@@ -29,13 +31,15 @@ public class IngresoController {
     }
 
     @GetMapping("/maquina/{nombre}")
-    public List<Ingreso> obtenerPorMaquina(@PathVariable String nombre) {
-        return ingresoService.obtenerPorMaquina(nombre);
+    public List<Ingreso> obtenerPorMaquina(@PathVariable String nombre, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return ingresoService.obtenerPorMaquina(userId, nombre);
     }
 
     @PostMapping
-    public Ingreso registrar(@RequestBody Ingreso ingreso) {
-        return ingresoService.guardar(ingreso);
+    public Ingreso registrar(@RequestBody Ingreso ingreso, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return ingresoService.guardar(userId, ingreso);
     }
 
     @PutMapping("/{id}")

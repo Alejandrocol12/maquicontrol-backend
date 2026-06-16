@@ -11,6 +11,8 @@ public class PagoCliente {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private Long usuarioId;
+
     private String cliente;
     private String maquinaNombre;
     private String descripcion;
@@ -22,6 +24,9 @@ public class PagoCliente {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public Long getUsuarioId() { return usuarioId; }
+    public void setUsuarioId(Long usuarioId) { this.usuarioId = usuarioId; }
 
     public String getCliente() { return cliente; }
     public void setCliente(String cliente) { this.cliente = cliente; }

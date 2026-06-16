@@ -8,6 +8,8 @@ import java.util.List;
 
 @Repository
 public interface SalarioRepository extends JpaRepository<Salario, Long> {
+    List<Salario> findByUsuarioId(Long usuarioId);
+    List<Salario> findByUsuarioIdAndOperadorNombre(Long usuarioId, String operadorNombre);
     List<Salario> findByOperadorNombre(String operadorNombre);
     void deleteByOperadorNombre(String operadorNombre);
 }

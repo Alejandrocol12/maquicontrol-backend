@@ -14,19 +14,20 @@ public class GastoService {
     @Autowired
     private GastoRepository gastoRepository;
 
-    public List<Gasto> obtenerTodos() {
-        return gastoRepository.findAll();
+    public List<Gasto> obtenerTodos(Long userId) {
+        return gastoRepository.findByUsuarioId(userId);
     }
 
     public Optional<Gasto> obtenerPorId(Long id) {
         return gastoRepository.findById(id);
     }
 
-    public List<Gasto> obtenerPorMaquina(String maquinaNombre) {
-        return gastoRepository.findByMaquinaNombre(maquinaNombre);
+    public List<Gasto> obtenerPorMaquina(Long userId, String maquinaNombre) {
+        return gastoRepository.findByUsuarioIdAndMaquinaNombre(userId, maquinaNombre);
     }
 
-    public Gasto guardar(Gasto gasto) {
+    public Gasto guardar(Long userId, Gasto gasto) {
+        gasto.setUsuarioId(userId);
         return gastoRepository.save(gasto);
     }
 

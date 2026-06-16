@@ -11,6 +11,8 @@ public class Salario {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private Long usuarioId;
+
     private String operadorNombre;
     private String maquinaNombre;
     private int horasTrabajadas;
@@ -23,6 +25,9 @@ public class Salario {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public Long getUsuarioId() { return usuarioId; }
+    public void setUsuarioId(Long usuarioId) { this.usuarioId = usuarioId; }
 
     public String getOperadorNombre() { return operadorNombre; }
     public void setOperadorNombre(String operadorNombre) { this.operadorNombre = operadorNombre; }

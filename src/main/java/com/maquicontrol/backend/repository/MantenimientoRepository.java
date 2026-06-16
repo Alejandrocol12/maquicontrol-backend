@@ -8,6 +8,9 @@ import java.util.List;
 
 @Repository
 public interface MantenimientoRepository extends JpaRepository<Mantenimiento, Long> {
+    List<Mantenimiento> findByUsuarioId(Long usuarioId);
+    List<Mantenimiento> findByUsuarioIdAndMaquinaNombre(Long usuarioId, String maquinaNombre);
     List<Mantenimiento> findByMaquinaNombre(String maquinaNombre);
     void deleteByMaquinaNombre(String maquinaNombre);
+    void deleteByUsuarioIdAndMaquinaNombre(Long usuarioId, String maquinaNombre);
 }

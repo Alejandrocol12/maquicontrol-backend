@@ -4,6 +4,7 @@ import com.maquicontrol.backend.model.Maquina;
 import com.maquicontrol.backend.service.MaquinaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,13 +17,12 @@ public class MaquinaController {
     @Autowired
     private MaquinaService maquinaService;
 
-    // GET /api/maquinaria - Obtener todas las máquinas
     @GetMapping
-    public List<Maquina> obtenerTodas() {
-        return maquinaService.obtenerTodas();
+    public List<Maquina> obtenerTodas(Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return maquinaService.obtenerTodas(userId);
     }
 
-    // GET /api/maquinaria/{id} - Obtener una máquina
     @GetMapping("/{id}")
     public ResponseEntity<Maquina> obtenerPorId(@PathVariable Long id) {
         return maquinaService.obtenerPorId(id)
@@ -30,22 +30,21 @@ public class MaquinaController {
             .orElse(ResponseEntity.notFound().build());
     }
 
-    // POST /api/maquinaria - Registrar nueva máquina
     @PostMapping
-    public Maquina registrar(@RequestBody Maquina maquina) {
-        return maquinaService.guardar(maquina);
+    public Maquina registrar(@RequestBody Maquina maquina, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return maquinaService.guardar(userId, maquina);
     }
 
-    // PUT /api/maquinaria/{id} - Actualizar máquina
     @PutMapping("/{id}")
     public ResponseEntity<Maquina> actualizar(@PathVariable Long id, @RequestBody Maquina maquina) {
         return ResponseEntity.ok(maquinaService.actualizar(id, maquina));
     }
 
-    // DELETE /api/maquinaria/{id} - Eliminar máquina
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
-        maquinaService.eliminar(id);
+    public ResponseEntity<Void> eliminar(@PathVariable Long id, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        maquinaService.eliminar(id, userId);
         return ResponseEntity.noContent().build();
     }
 }

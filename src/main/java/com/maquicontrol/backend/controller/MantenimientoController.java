@@ -4,6 +4,7 @@ import com.maquicontrol.backend.model.Mantenimiento;
 import com.maquicontrol.backend.service.MantenimientoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,8 +18,9 @@ public class MantenimientoController {
     private MantenimientoService mantenimientoService;
 
     @GetMapping
-    public List<Mantenimiento> obtenerTodos() {
-        return mantenimientoService.obtenerTodos();
+    public List<Mantenimiento> obtenerTodos(Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return mantenimientoService.obtenerTodos(userId);
     }
 
     @GetMapping("/{id}")
@@ -29,13 +31,15 @@ public class MantenimientoController {
     }
 
     @GetMapping("/maquina/{nombre}")
-    public List<Mantenimiento> obtenerPorMaquina(@PathVariable String nombre) {
-        return mantenimientoService.obtenerPorMaquina(nombre);
+    public List<Mantenimiento> obtenerPorMaquina(@PathVariable String nombre, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return mantenimientoService.obtenerPorMaquina(userId, nombre);
     }
 
     @PostMapping
-    public Mantenimiento registrar(@RequestBody Mantenimiento mantenimiento) {
-        return mantenimientoService.guardar(mantenimiento);
+    public Mantenimiento registrar(@RequestBody Mantenimiento mantenimiento, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return mantenimientoService.guardar(userId, mantenimiento);
     }
 
     @PutMapping("/{id}")

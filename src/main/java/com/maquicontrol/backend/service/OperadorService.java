@@ -14,15 +14,16 @@ public class OperadorService {
     @Autowired
     private OperadorRepository operadorRepository;
 
-    public List<Operador> obtenerTodos() {
-        return operadorRepository.findAll();
+    public List<Operador> obtenerTodos(Long userId) {
+        return operadorRepository.findByUsuarioId(userId);
     }
 
     public Optional<Operador> obtenerPorId(Long id) {
         return operadorRepository.findById(id);
     }
 
-    public Operador guardar(Operador operador) {
+    public Operador guardar(Long userId, Operador operador) {
+        operador.setUsuarioId(userId);
         return operadorRepository.save(operador);
     }
 

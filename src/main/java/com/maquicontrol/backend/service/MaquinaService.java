@@ -20,8 +20,8 @@ public class MaquinaService {
     @Autowired private HoraTrabajadaRepository horaRepository;
 
     // Obtener todas las máquinas
-    public List<Maquina> obtenerTodas() {
-        return maquinaRepository.findAll();
+    public List<Maquina> obtenerTodas(Long userId) {
+        return maquinaRepository.findByUsuarioId(userId);
     }
 
     // Obtener una máquina por ID
@@ -30,7 +30,8 @@ public class MaquinaService {
     }
 
     // Registrar nueva máquina
-    public Maquina guardar(Maquina maquina) {
+    public Maquina guardar(Long userId, Maquina maquina) {
+        maquina.setUsuarioId(userId);
         return maquinaRepository.save(maquina);
     }
 
@@ -51,14 +52,14 @@ public class MaquinaService {
 
     // Eliminar máquina y todos sus datos asociados
     @Transactional
-    public void eliminar(Long id) {
+    public void eliminar(Long id, Long userId) {
         maquinaRepository.findById(id).ifPresent(maq -> {
             String nombre = maq.getNombre();
-            ingresoRepository.deleteByMaquinaNombre(nombre);
-            gastoRepository.deleteByMaquinaNombre(nombre);
-            combustibleRepository.deleteByMaquinaNombre(nombre);
-            mantenimientoRepository.deleteByMaquinaNombre(nombre);
-            horaRepository.deleteByMaquinaNombre(nombre);
+            ingresoRepository.deleteByUsuarioIdAndMaquinaNombre(userId, nombre);
+            gastoRepository.deleteByUsuarioIdAndMaquinaNombre(userId, nombre);
+            combustibleRepository.deleteByUsuarioIdAndMaquinaNombre(userId, nombre);
+            mantenimientoRepository.deleteByUsuarioIdAndMaquinaNombre(userId, nombre);
+            horaRepository.deleteByUsuarioIdAndMaquinaNombre(userId, nombre);
             maquinaRepository.deleteById(id);
         });
     }

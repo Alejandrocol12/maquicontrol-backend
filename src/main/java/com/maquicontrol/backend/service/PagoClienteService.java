@@ -14,23 +14,24 @@ public class PagoClienteService {
     @Autowired
     private PagoClienteRepository pagoRepository;
 
-    public List<PagoCliente> obtenerTodos() {
-        return pagoRepository.findAll();
+    public List<PagoCliente> obtenerTodos(Long userId) {
+        return pagoRepository.findByUsuarioId(userId);
     }
 
     public Optional<PagoCliente> obtenerPorId(Long id) {
         return pagoRepository.findById(id);
     }
 
-    public List<PagoCliente> obtenerPorCliente(String cliente) {
-        return pagoRepository.findByCliente(cliente);
+    public List<PagoCliente> obtenerPorCliente(Long userId, String cliente) {
+        return pagoRepository.findByUsuarioIdAndCliente(userId, cliente);
     }
 
-    public List<PagoCliente> obtenerPorEstado(String estado) {
-        return pagoRepository.findByEstado(estado);
+    public List<PagoCliente> obtenerPorEstado(Long userId, String estado) {
+        return pagoRepository.findByUsuarioIdAndEstado(userId, estado);
     }
 
-    public PagoCliente guardar(PagoCliente pago) {
+    public PagoCliente guardar(Long userId, PagoCliente pago) {
+        pago.setUsuarioId(userId);
         pago.setSaldoPendiente(pago.getValorTotal() - pago.getValorPagado());
         if (pago.getSaldoPendiente() <= 0) {
             pago.setEstado("Pagado");

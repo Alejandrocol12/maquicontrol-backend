@@ -4,6 +4,7 @@ import com.maquicontrol.backend.model.Gasto;
 import com.maquicontrol.backend.service.GastoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,8 +18,9 @@ public class GastoController {
     private GastoService gastoService;
 
     @GetMapping
-    public List<Gasto> obtenerTodos() {
-        return gastoService.obtenerTodos();
+    public List<Gasto> obtenerTodos(Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return gastoService.obtenerTodos(userId);
     }
 
     @GetMapping("/{id}")
@@ -29,13 +31,15 @@ public class GastoController {
     }
 
     @GetMapping("/maquina/{nombre}")
-    public List<Gasto> obtenerPorMaquina(@PathVariable String nombre) {
-        return gastoService.obtenerPorMaquina(nombre);
+    public List<Gasto> obtenerPorMaquina(@PathVariable String nombre, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return gastoService.obtenerPorMaquina(userId, nombre);
     }
 
     @PostMapping
-    public Gasto registrar(@RequestBody Gasto gasto) {
-        return gastoService.guardar(gasto);
+    public Gasto registrar(@RequestBody Gasto gasto, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return gastoService.guardar(userId, gasto);
     }
 
     @PutMapping("/{id}")

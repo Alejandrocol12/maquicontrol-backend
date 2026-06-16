@@ -8,6 +8,9 @@ import java.util.List;
 
 @Repository
 public interface IngresoRepository extends JpaRepository<Ingreso, Long> {
+    List<Ingreso> findByUsuarioId(Long usuarioId);
+    List<Ingreso> findByUsuarioIdAndMaquinaNombre(Long usuarioId, String maquinaNombre);
     List<Ingreso> findByMaquinaNombre(String maquinaNombre);
     void deleteByMaquinaNombre(String maquinaNombre);
+    void deleteByUsuarioIdAndMaquinaNombre(Long usuarioId, String maquinaNombre);
 }

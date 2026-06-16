@@ -4,6 +4,7 @@ import com.maquicontrol.backend.model.PagoCliente;
 import com.maquicontrol.backend.service.PagoClienteService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,8 +18,9 @@ public class PagoClienteController {
     private PagoClienteService pagoService;
 
     @GetMapping
-    public List<PagoCliente> obtenerTodos() {
-        return pagoService.obtenerTodos();
+    public List<PagoCliente> obtenerTodos(Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return pagoService.obtenerTodos(userId);
     }
 
     @GetMapping("/{id}")
@@ -29,18 +31,21 @@ public class PagoClienteController {
     }
 
     @GetMapping("/cliente/{nombre}")
-    public List<PagoCliente> obtenerPorCliente(@PathVariable String nombre) {
-        return pagoService.obtenerPorCliente(nombre);
+    public List<PagoCliente> obtenerPorCliente(@PathVariable String nombre, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return pagoService.obtenerPorCliente(userId, nombre);
     }
 
     @GetMapping("/estado/{estado}")
-    public List<PagoCliente> obtenerPorEstado(@PathVariable String estado) {
-        return pagoService.obtenerPorEstado(estado);
+    public List<PagoCliente> obtenerPorEstado(@PathVariable String estado, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return pagoService.obtenerPorEstado(userId, estado);
     }
 
     @PostMapping
-    public PagoCliente registrar(@RequestBody PagoCliente pago) {
-        return pagoService.guardar(pago);
+    public PagoCliente registrar(@RequestBody PagoCliente pago, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return pagoService.guardar(userId, pago);
     }
 
     @PutMapping("/{id}")

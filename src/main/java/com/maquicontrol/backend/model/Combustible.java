@@ -11,6 +11,8 @@ public class Combustible {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private Long usuarioId;
+
     private String maquinaNombre;
     private double galones;
     private double precioPorGalon;
@@ -20,6 +22,9 @@ public class Combustible {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public Long getUsuarioId() { return usuarioId; }
+    public void setUsuarioId(Long usuarioId) { this.usuarioId = usuarioId; }
 
     public String getMaquinaNombre() { return maquinaNombre; }
     public void setMaquinaNombre(String maquinaNombre) { this.maquinaNombre = maquinaNombre; }

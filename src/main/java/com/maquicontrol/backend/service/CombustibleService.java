@@ -19,25 +19,26 @@ public class CombustibleService {
     @Autowired
     private GastoRepository gastoRepository;
 
-    public List<Combustible> obtenerTodos() {
-        return combustibleRepository.findAll();
+    public List<Combustible> obtenerTodos(Long userId) {
+        return combustibleRepository.findByUsuarioId(userId);
     }
 
     public Optional<Combustible> obtenerPorId(Long id) {
         return combustibleRepository.findById(id);
     }
 
-    public List<Combustible> obtenerPorMaquina(String maquinaNombre) {
-        return combustibleRepository.findByMaquinaNombre(maquinaNombre);
+    public List<Combustible> obtenerPorMaquina(Long userId, String maquinaNombre) {
+        return combustibleRepository.findByUsuarioIdAndMaquinaNombre(userId, maquinaNombre);
     }
 
-    public Combustible guardar(Combustible combustible) {
-        // Calcular total automáticamente
+    public Combustible guardar(Long userId, Combustible combustible) {
+        combustible.setUsuarioId(userId);
         combustible.setTotal(combustible.getGalones() * combustible.getPrecioPorGalon());
         Combustible saved = combustibleRepository.save(combustible);
 
-        // Agregar automáticamente como gasto
+        // Agregar automáticamente como gasto del mismo usuario
         Gasto gasto = new Gasto();
+        gasto.setUsuarioId(userId);
         gasto.setDescripcion("Combustible " + combustible.getGalones() + " galones");
         gasto.setCategoria("Combustible");
         gasto.setMonto(combustible.getTotal());

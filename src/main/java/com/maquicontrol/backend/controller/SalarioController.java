@@ -4,6 +4,7 @@ import com.maquicontrol.backend.model.Salario;
 import com.maquicontrol.backend.service.SalarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,8 +18,9 @@ public class SalarioController {
     private SalarioService salarioService;
 
     @GetMapping
-    public List<Salario> obtenerTodos() {
-        return salarioService.obtenerTodos();
+    public List<Salario> obtenerTodos(Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return salarioService.obtenerTodos(userId);
     }
 
     @GetMapping("/{id}")
@@ -29,13 +31,15 @@ public class SalarioController {
     }
 
     @GetMapping("/operador/{nombre}")
-    public List<Salario> obtenerPorOperador(@PathVariable String nombre) {
-        return salarioService.obtenerPorOperador(nombre);
+    public List<Salario> obtenerPorOperador(@PathVariable String nombre, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return salarioService.obtenerPorOperador(userId, nombre);
     }
 
     @PostMapping
-    public Salario registrar(@RequestBody Salario salario) {
-        return salarioService.guardar(salario);
+    public Salario registrar(@RequestBody Salario salario, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return salarioService.guardar(userId, salario);
     }
 
     @PutMapping("/{id}")

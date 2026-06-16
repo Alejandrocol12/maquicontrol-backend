@@ -1,11 +1,7 @@
 package com.maquicontrol.backend.model;
 
-import com.maquicontrol.backend.converter.MapListConverter;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 @Entity
 @Table(name = "periodos")
@@ -15,6 +11,7 @@ public class Periodo {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private Long usuarioId;
     private Long operadorId;
     private String estado = "activo";
     private String fechaInicio;
@@ -28,15 +25,16 @@ public class Periodo {
 
     private Long desdeHoraId;
 
-    @Convert(converter = MapListConverter.class)
-    @Column(columnDefinition = "TEXT")
-    private List<Map<String, Object>> anticipos = new ArrayList<>();
+    private double anticipos = 0;
 
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public Long getUsuarioId() { return usuarioId; }
+    public void setUsuarioId(Long usuarioId) { this.usuarioId = usuarioId; }
 
     public Long getOperadorId() { return operadorId; }
     public void setOperadorId(Long operadorId) { this.operadorId = operadorId; }
@@ -65,8 +63,8 @@ public class Periodo {
     public Long getDesdeHoraId() { return desdeHoraId; }
     public void setDesdeHoraId(Long desdeHoraId) { this.desdeHoraId = desdeHoraId; }
 
-    public List<Map<String, Object>> getAnticipos() { return anticipos; }
-    public void setAnticipos(List<Map<String, Object>> anticipos) { this.anticipos = anticipos; }
+    public double getAnticipos() { return anticipos; }
+    public void setAnticipos(double anticipos) { this.anticipos = anticipos; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

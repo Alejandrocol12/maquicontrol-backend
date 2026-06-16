@@ -6,6 +6,7 @@ import com.maquicontrol.backend.service.OperadorService;
 import com.maquicontrol.backend.service.PeriodoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,8 +20,9 @@ public class OperadorController {
     @Autowired private PeriodoService periodoService;
 
     @GetMapping
-    public List<Operador> listar() {
-        return operadorService.obtenerTodos();
+    public List<Operador> listar(Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return operadorService.obtenerTodos(userId);
     }
 
     @GetMapping("/{id}")
@@ -31,8 +33,9 @@ public class OperadorController {
     }
 
     @PostMapping
-    public Operador crear(@RequestBody Operador operador) {
-        return operadorService.guardar(operador);
+    public Operador crear(@RequestBody Operador operador, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return operadorService.guardar(userId, operador);
     }
 
     @PutMapping("/{id}")
@@ -49,20 +52,23 @@ public class OperadorController {
     // --- Periodos ---
 
     @GetMapping("/{id}/periodos")
-    public List<Periodo> listarPeriodos(@PathVariable Long id) {
-        return periodoService.obtenerPorOperador(id);
+    public List<Periodo> listarPeriodos(@PathVariable Long id, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return periodoService.obtenerPorOperador(userId, id);
     }
 
     @GetMapping("/{id}/periodos/activo")
-    public ResponseEntity<Periodo> periodoActivo(@PathVariable Long id) {
-        return periodoService.obtenerActivo(id)
+    public ResponseEntity<Periodo> periodoActivo(@PathVariable Long id, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return periodoService.obtenerActivo(userId, id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping("/{id}/periodos")
-    public Periodo crearPeriodo(@PathVariable Long id, @RequestBody Periodo periodo) {
-        return periodoService.crear(id, periodo);
+    public Periodo crearPeriodo(@PathVariable Long id, @RequestBody Periodo periodo, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return periodoService.crear(userId, id, periodo);
     }
 
     @PutMapping("/periodos/{id}")

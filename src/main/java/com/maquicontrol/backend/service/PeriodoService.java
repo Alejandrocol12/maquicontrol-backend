@@ -14,15 +14,16 @@ public class PeriodoService {
     @Autowired
     private PeriodoRepository periodoRepository;
 
-    public List<Periodo> obtenerPorOperador(Long operadorId) {
-        return periodoRepository.findByOperadorId(operadorId);
+    public List<Periodo> obtenerPorOperador(Long userId, Long operadorId) {
+        return periodoRepository.findByUsuarioIdAndOperadorId(userId, operadorId);
     }
 
-    public Optional<Periodo> obtenerActivo(Long operadorId) {
-        return periodoRepository.findByOperadorIdAndEstado(operadorId, "activo");
+    public Optional<Periodo> obtenerActivo(Long userId, Long operadorId) {
+        return periodoRepository.findByUsuarioIdAndOperadorIdAndEstado(userId, operadorId, "activo");
     }
 
-    public Periodo crear(Long operadorId, Periodo periodo) {
+    public Periodo crear(Long userId, Long operadorId, Periodo periodo) {
+        periodo.setUsuarioId(userId);
         periodo.setOperadorId(operadorId);
         return periodoRepository.save(periodo);
     }
@@ -37,7 +38,7 @@ public class PeriodoService {
         if (datos.getSalarioNeto() != 0) p.setSalarioNeto(datos.getSalarioNeto());
         if (datos.getNota() != null) p.setNota(datos.getNota());
         if (datos.getDesdeHoraId() != null) p.setDesdeHoraId(datos.getDesdeHoraId());
-        if (datos.getAnticipos() != null) p.setAnticipos(datos.getAnticipos());
+        p.setAnticipos(datos.getAnticipos());
         return periodoRepository.save(p);
     }
 }
