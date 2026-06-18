@@ -45,4 +45,20 @@ public class GastoService {
     public void eliminar(Long id) {
         gastoRepository.deleteById(id);
     }
+
+    public void guardarFactura(Long gastoId, String nombre, byte[] data) {
+        Gasto gasto = gastoRepository.findById(gastoId)
+            .orElseThrow(() -> new RuntimeException("Gasto no encontrado"));
+        gasto.setFacturaNombre(nombre);
+        gasto.setFacturaPdf(data);
+        gastoRepository.save(gasto);
+    }
+
+    public void eliminarFactura(Long gastoId) {
+        Gasto gasto = gastoRepository.findById(gastoId)
+            .orElseThrow(() -> new RuntimeException("Gasto no encontrado"));
+        gasto.setFacturaNombre(null);
+        gasto.setFacturaPdf(null);
+        gastoRepository.save(gasto);
+    }
 }

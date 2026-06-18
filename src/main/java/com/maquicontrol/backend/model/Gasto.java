@@ -1,5 +1,6 @@
 package com.maquicontrol.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 
@@ -18,6 +19,13 @@ public class Gasto {
     private double monto;
     private LocalDate fecha;
     private String maquinaNombre;
+
+    @JsonIgnore
+    @Column(name = "factura_pdf", columnDefinition = "LONGBLOB")
+    private byte[] facturaPdf;
+
+    @Column(name = "factura_nombre")
+    private String facturaNombre;
 
     // Getters y Setters
     public Long getId() { return id; }
@@ -40,4 +48,12 @@ public class Gasto {
 
     public String getMaquinaNombre() { return maquinaNombre; }
     public void setMaquinaNombre(String maquinaNombre) { this.maquinaNombre = maquinaNombre; }
+
+    public byte[] getFacturaPdf() { return facturaPdf; }
+    public void setFacturaPdf(byte[] facturaPdf) { this.facturaPdf = facturaPdf; }
+
+    public String getFacturaNombre() { return facturaNombre; }
+    public void setFacturaNombre(String facturaNombre) { this.facturaNombre = facturaNombre; }
+
+    public boolean isTieneFactura() { return facturaPdf != null && facturaPdf.length > 0; }
 }
