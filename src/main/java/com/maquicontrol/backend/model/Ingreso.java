@@ -20,6 +20,7 @@ public class Ingreso {
     private double total;
     private LocalDate fecha;
     private String maquinaNombre;
+    private Long faenaId;
 
     // Getters y Setters
     public Long getId() { return id; }
@@ -48,4 +49,7 @@ public class Ingreso {
 
     public String getMaquinaNombre() { return maquinaNombre; }
     public void setMaquinaNombre(String maquinaNombre) { this.maquinaNombre = maquinaNombre; }
+
+    public Long getFaenaId() { return faenaId; }
+    public void setFaenaId(Long faenaId) { this.faenaId = faenaId; }
 }

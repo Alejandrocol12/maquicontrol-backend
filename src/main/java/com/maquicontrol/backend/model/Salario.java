@@ -15,13 +15,15 @@ public class Salario {
 
     private String operadorNombre;
     private String maquinaNombre;
-    private int horasTrabajadas;
+    private double horasTrabajadas;
     private double valorHora;
     private double totalBruto;
     private double anticipos;
     private double totalNeto;
     private String estado;
     private LocalDate fecha;
+    private Long faenaId;
+    private Long gastoGeneradoId;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -35,8 +37,8 @@ public class Salario {
     public String getMaquinaNombre() { return maquinaNombre; }
     public void setMaquinaNombre(String maquinaNombre) { this.maquinaNombre = maquinaNombre; }
 
-    public int getHorasTrabajadas() { return horasTrabajadas; }
-    public void setHorasTrabajadas(int horasTrabajadas) { this.horasTrabajadas = horasTrabajadas; }
+    public double getHorasTrabajadas() { return horasTrabajadas; }
+    public void setHorasTrabajadas(double horasTrabajadas) { this.horasTrabajadas = horasTrabajadas; }
 
     public double getValorHora() { return valorHora; }
     public void setValorHora(double valorHora) { this.valorHora = valorHora; }
@@ -55,4 +57,10 @@ public class Salario {
 
     public LocalDate getFecha() { return fecha; }
     public void setFecha(LocalDate fecha) { this.fecha = fecha; }
+
+    public Long getFaenaId() { return faenaId; }
+    public void setFaenaId(Long faenaId) { this.faenaId = faenaId; }
+
+    public Long getGastoGeneradoId() { return gastoGeneradoId; }
+    public void setGastoGeneradoId(Long gastoGeneradoId) { this.gastoGeneradoId = gastoGeneradoId; }
 }

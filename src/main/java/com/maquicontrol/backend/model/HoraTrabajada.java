@@ -23,6 +23,8 @@ public class HoraTrabajada {
     private double horometroFin;
     private double valorHora;
     private LocalDate fecha;
+    private Long faenaId;
+    private Long gastoGeneradoId;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -62,4 +64,10 @@ public class HoraTrabajada {
 
     public LocalDate getFecha() { return fecha; }
     public void setFecha(LocalDate fecha) { this.fecha = fecha; }
+
+    public Long getFaenaId() { return faenaId; }
+    public void setFaenaId(Long faenaId) { this.faenaId = faenaId; }
+
+    public Long getGastoGeneradoId() { return gastoGeneradoId; }
+    public void setGastoGeneradoId(Long gastoGeneradoId) { this.gastoGeneradoId = gastoGeneradoId; }
 }

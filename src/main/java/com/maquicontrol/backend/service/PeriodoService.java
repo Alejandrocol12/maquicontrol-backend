@@ -28,6 +28,10 @@ public class PeriodoService {
         return periodoRepository.save(periodo);
     }
 
+    public void eliminar(Long id) {
+        periodoRepository.deleteById(id);
+    }
+
     public Periodo actualizar(Long id, Periodo datos) {
         Periodo p = periodoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Periodo no encontrado"));

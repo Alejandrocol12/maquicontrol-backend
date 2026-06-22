@@ -1,6 +1,7 @@
 package com.maquicontrol.backend.service;
 
 import com.maquicontrol.backend.model.Gasto;
+import com.maquicontrol.backend.repository.FaenaRepository;
 import com.maquicontrol.backend.repository.GastoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,9 @@ public class GastoService {
 
     @Autowired
     private GastoRepository gastoRepository;
+
+    @Autowired
+    private FaenaRepository faenaRepository;
 
     public List<Gasto> obtenerTodos(Long userId) {
         return gastoRepository.findByUsuarioId(userId);
@@ -28,6 +32,10 @@ public class GastoService {
 
     public Gasto guardar(Long userId, Gasto gasto) {
         gasto.setUsuarioId(userId);
+        if (gasto.getMaquinaNombre() != null && gasto.getFaenaId() == null) {
+            faenaRepository.findByUsuarioIdAndMaquinaNombreAndEstado(userId, gasto.getMaquinaNombre(), "activa")
+                .ifPresent(f -> gasto.setFaenaId(f.getId()));
+        }
         return gastoRepository.save(gasto);
     }
 

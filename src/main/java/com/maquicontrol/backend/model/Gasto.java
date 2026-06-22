@@ -19,6 +19,7 @@ public class Gasto {
     private double monto;
     private LocalDate fecha;
     private String maquinaNombre;
+    private Long faenaId;
 
     @JsonIgnore
     @Column(name = "factura_pdf", columnDefinition = "LONGBLOB")
@@ -56,4 +57,7 @@ public class Gasto {
     public void setFacturaNombre(String facturaNombre) { this.facturaNombre = facturaNombre; }
 
     public boolean isTieneFactura() { return facturaPdf != null && facturaPdf.length > 0; }
+
+    public Long getFaenaId() { return faenaId; }
+    public void setFaenaId(Long faenaId) { this.faenaId = faenaId; }
 }

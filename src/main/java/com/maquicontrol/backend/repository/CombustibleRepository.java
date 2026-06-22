@@ -2,6 +2,9 @@ package com.maquicontrol.backend.repository;
 
 import com.maquicontrol.backend.model.Combustible;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -13,4 +16,9 @@ public interface CombustibleRepository extends JpaRepository<Combustible, Long> 
     List<Combustible> findByMaquinaNombre(String maquinaNombre);
     void deleteByMaquinaNombre(String maquinaNombre);
     void deleteByUsuarioIdAndMaquinaNombre(Long usuarioId, String maquinaNombre);
+    List<Combustible> findByFaenaId(Long faenaId);
+
+    @Modifying
+    @Query("UPDATE Combustible c SET c.maquinaNombre = :nuevo WHERE c.usuarioId = :uid AND c.maquinaNombre = :viejo")
+    void actualizarNombreMaquina(@Param("uid") Long uid, @Param("viejo") String viejo, @Param("nuevo") String nuevo);
 }

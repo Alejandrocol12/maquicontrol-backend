@@ -75,4 +75,10 @@ public class OperadorController {
     public ResponseEntity<Periodo> actualizarPeriodo(@PathVariable Long id, @RequestBody Periodo periodo) {
         return ResponseEntity.ok(periodoService.actualizar(id, periodo));
     }
+
+    @DeleteMapping("/periodos/{id}")
+    public ResponseEntity<Void> eliminarPeriodo(@PathVariable Long id) {
+        periodoService.eliminar(id);
+        return ResponseEntity.noContent().build();
+    }
 }

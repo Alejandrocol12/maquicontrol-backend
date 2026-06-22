@@ -18,28 +18,31 @@ public class MaquinaService {
     @Autowired private CombustibleRepository combustibleRepository;
     @Autowired private MantenimientoRepository mantenimientoRepository;
     @Autowired private HoraTrabajadaRepository horaRepository;
+    @Autowired private SalarioRepository salarioRepository;
+    @Autowired private FaenaRepository faenaRepository;
 
-    // Obtener todas las máquinas
     public List<Maquina> obtenerTodas(Long userId) {
         return maquinaRepository.findByUsuarioId(userId);
     }
 
-    // Obtener una máquina por ID
     public Optional<Maquina> obtenerPorId(Long id) {
         return maquinaRepository.findById(id);
     }
 
-    // Registrar nueva máquina
     public Maquina guardar(Long userId, Maquina maquina) {
         maquina.setUsuarioId(userId);
         return maquinaRepository.save(maquina);
     }
 
-    // Actualizar máquina existente
+    @Transactional
     public Maquina actualizar(Long id, Maquina maquinaActualizada) {
         Maquina maquina = maquinaRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Máquina no encontrada"));
-        maquina.setNombre(maquinaActualizada.getNombre());
+
+        String nombreViejo = maquina.getNombre();
+        String nombreNuevo = maquinaActualizada.getNombre();
+
+        maquina.setNombre(nombreNuevo);
         maquina.setTipo(maquinaActualizada.getTipo());
         maquina.setPlaca(maquinaActualizada.getPlaca());
         maquina.setHorometroActual(maquinaActualizada.getHorometroActual());
@@ -47,10 +50,23 @@ public class MaquinaService {
         maquina.setOperadorNombre(maquinaActualizada.getOperadorNombre());
         maquina.setValorHoraOperador(maquinaActualizada.getValorHoraOperador());
         maquina.setValorHoraMaquina(maquinaActualizada.getValorHoraMaquina());
-        return maquinaRepository.save(maquina);
+        Maquina saved = maquinaRepository.save(maquina);
+
+        // #7: si el nombre cambió, cascadear la actualización a todos los registros relacionados
+        if (nombreViejo != null && !nombreViejo.equals(nombreNuevo)) {
+            Long userId = maquina.getUsuarioId();
+            ingresoRepository.actualizarNombreMaquina(userId, nombreViejo, nombreNuevo);
+            gastoRepository.actualizarNombreMaquina(userId, nombreViejo, nombreNuevo);
+            combustibleRepository.actualizarNombreMaquina(userId, nombreViejo, nombreNuevo);
+            mantenimientoRepository.actualizarNombreMaquina(userId, nombreViejo, nombreNuevo);
+            horaRepository.actualizarNombreMaquina(userId, nombreViejo, nombreNuevo);
+            salarioRepository.actualizarNombreMaquina(userId, nombreViejo, nombreNuevo);
+            faenaRepository.actualizarNombreMaquina(userId, nombreViejo, nombreNuevo);
+        }
+
+        return saved;
     }
 
-    // Eliminar máquina y todos sus datos asociados
     @Transactional
     public void eliminar(Long id, Long userId) {
         maquinaRepository.findById(id).ifPresent(maq -> {
@@ -60,6 +76,8 @@ public class MaquinaService {
             combustibleRepository.deleteByUsuarioIdAndMaquinaNombre(userId, nombre);
             mantenimientoRepository.deleteByUsuarioIdAndMaquinaNombre(userId, nombre);
             horaRepository.deleteByUsuarioIdAndMaquinaNombre(userId, nombre);
+            salarioRepository.deleteByMaquinaNombre(nombre);
+            faenaRepository.deleteAll(faenaRepository.findByUsuarioIdAndMaquinaNombre(userId, nombre));
             maquinaRepository.deleteById(id);
         });
     }

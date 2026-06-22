@@ -15,7 +15,7 @@ public class Maquina {
     private String nombre;
     private String tipo;
     private String placa;
-    private int horometroActual;
+    private double horometroActual;
     private String estado;
     private String operadorNombre;
     private double valorHoraOperador;
@@ -37,8 +37,8 @@ public class Maquina {
     public String getPlaca() { return placa; }
     public void setPlaca(String placa) { this.placa = placa; }
 
-    public int getHorometroActual() { return horometroActual; }
-    public void setHorometroActual(int horometroActual) { this.horometroActual = horometroActual; }
+    public double getHorometroActual() { return horometroActual; }
+    public void setHorometroActual(double horometroActual) { this.horometroActual = horometroActual; }
 
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }

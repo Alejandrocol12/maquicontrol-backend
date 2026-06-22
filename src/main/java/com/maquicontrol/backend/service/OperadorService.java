@@ -1,9 +1,13 @@
 package com.maquicontrol.backend.service;
 
 import com.maquicontrol.backend.model.Operador;
+import com.maquicontrol.backend.repository.HoraTrabajadaRepository;
 import com.maquicontrol.backend.repository.OperadorRepository;
+import com.maquicontrol.backend.repository.PeriodoRepository;
+import com.maquicontrol.backend.repository.SalarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -11,8 +15,10 @@ import java.util.Optional;
 @Service
 public class OperadorService {
 
-    @Autowired
-    private OperadorRepository operadorRepository;
+    @Autowired private OperadorRepository operadorRepository;
+    @Autowired private PeriodoRepository periodoRepository;
+    @Autowired private HoraTrabajadaRepository horaRepository;
+    @Autowired private SalarioRepository salarioRepository;
 
     public List<Operador> obtenerTodos(Long userId) {
         return operadorRepository.findByUsuarioId(userId);
@@ -39,7 +45,13 @@ public class OperadorService {
         return operadorRepository.save(op);
     }
 
+    @Transactional
     public void eliminar(Long id) {
-        operadorRepository.deleteById(id);
+        operadorRepository.findById(id).ifPresent(op -> {
+            periodoRepository.deleteAll(periodoRepository.findByOperadorId(id));
+            horaRepository.deleteByOperadorNombre(op.getNombre());
+            salarioRepository.deleteByOperadorNombre(op.getNombre());
+            operadorRepository.deleteById(id);
+        });
     }
 }
