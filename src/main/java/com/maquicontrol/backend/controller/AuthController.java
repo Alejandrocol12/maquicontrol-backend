@@ -53,6 +53,34 @@ public class AuthController {
                 .orElse(ResponseEntity.status(401).build());
     }
 
+    @PutMapping("/me")
+    public ResponseEntity<?> updateMe(@RequestBody Map<String, String> body, Authentication auth) {
+        if (auth == null) return ResponseEntity.status(401).build();
+        return usuarioRepo.findByEmail(auth.getName()).map(u -> {
+            if (body.containsKey("nombre") && body.get("nombre") != null && !body.get("nombre").isBlank())
+                u.setNombre(body.get("nombre"));
+            if (body.containsKey("empresa"))
+                u.setEmpresa(body.get("empresa"));
+            usuarioRepo.save(u);
+            return ResponseEntity.ok(userDto(u));
+        }).orElse(ResponseEntity.status(401).build());
+    }
+
+    @PutMapping("/password")
+    public ResponseEntity<?> changePassword(@RequestBody Map<String, String> body, Authentication auth) {
+        if (auth == null) return ResponseEntity.status(401).build();
+        return usuarioRepo.findByEmail(auth.getName()).map(u -> {
+            if (!passwordEncoder.matches(body.get("actual"), u.getPassword()))
+                return ResponseEntity.badRequest().body(Map.of("error", "La contraseña actual es incorrecta"));
+            String nueva = body.get("nueva");
+            if (nueva == null || nueva.length() < 6)
+                return ResponseEntity.badRequest().body(Map.of("error", "La nueva contraseña debe tener al menos 6 caracteres"));
+            u.setPassword(passwordEncoder.encode(nueva));
+            usuarioRepo.save(u);
+            return ResponseEntity.ok(Map.of("ok", true));
+        }).orElse(ResponseEntity.status(401).build());
+    }
+
     private Map<String, Object> buildResponse(Usuario u) {
         return Map.of("token", jwtUtil.generate(u), "user", userDto(u));
     }
