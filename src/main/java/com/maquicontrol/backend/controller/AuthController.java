@@ -53,7 +53,7 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<?> me(Authentication auth) {
         if (auth == null) return ResponseEntity.status(401).build();
-        return usuarioRepo.findByEmail(auth.getName())
+        return usuarioRepo.findById((Long) auth.getPrincipal())
                 .map(u -> ResponseEntity.ok(userDto(u)))
                 .orElse(ResponseEntity.status(401).build());
     }
@@ -61,7 +61,7 @@ public class AuthController {
     @PutMapping("/me")
     public ResponseEntity<?> updateMe(@RequestBody Map<String, String> body, Authentication auth) {
         if (auth == null) return ResponseEntity.status(401).build();
-        return usuarioRepo.findByEmail(auth.getName()).map(u -> {
+        return usuarioRepo.findById((Long) auth.getPrincipal()).map(u -> {
             if (body.containsKey("nombre") && body.get("nombre") != null && !body.get("nombre").isBlank())
                 u.setNombre(body.get("nombre"));
             if (body.containsKey("empresa"))
@@ -74,7 +74,7 @@ public class AuthController {
     @PostMapping("/enviar-codigo")
     public ResponseEntity<?> enviarCodigo(Authentication auth) {
         if (auth == null) return ResponseEntity.status(401).build();
-        var opt = usuarioRepo.findByEmail(auth.getName());
+        var opt = usuarioRepo.findById((Long) auth.getPrincipal());
         if (opt.isEmpty()) return ResponseEntity.status(401).build();
         Usuario u = opt.get();
         String codigo = codigoService.generar(u.getEmail());
@@ -100,7 +100,7 @@ public class AuthController {
     @PutMapping("/password")
     public ResponseEntity<?> changePassword(@RequestBody Map<String, String> body, Authentication auth) {
         if (auth == null) return ResponseEntity.status(401).build();
-        var opt = usuarioRepo.findByEmail(auth.getName());
+        var opt = usuarioRepo.findById((Long) auth.getPrincipal());
         if (opt.isEmpty()) return ResponseEntity.status(401).build();
         Usuario u = opt.get();
         if (!codigoService.verificar(u.getEmail(), body.get("codigo")))
