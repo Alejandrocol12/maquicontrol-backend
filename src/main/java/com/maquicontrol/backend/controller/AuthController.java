@@ -27,8 +27,8 @@ public class AuthController {
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private CodigoVerificacionService codigoService;
 
-    @Value("${resend.api-key:}")
-    private String resendApiKey;
+    @Value("${brevo.api-key:}")
+    private String brevoApiKey;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Map<String, String> body) {
@@ -83,7 +83,7 @@ public class AuthController {
         Usuario u = opt.get();
         String codigo = codigoService.generar(u.getEmail());
         try {
-            enviarEmailResend(u.getEmail(), u.getNombre(), codigo);
+            enviarEmailBrevo(u.getEmail(), u.getNombre(), codigo);
             return ResponseEntity.ok(Map.of("ok", true));
         } catch (Exception ex) {
             return ResponseEntity.status(500).body(Map.of("error", "No se pudo enviar el correo: " + ex.getMessage()));
@@ -106,30 +106,31 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("ok", true));
     }
 
-    private void enviarEmailResend(String to, String nombre, String codigo) {
+    private void enviarEmailBrevo(String to, String nombre, String codigo) {
         var factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(5000);
         factory.setReadTimeout(10000);
         var restTemplate = new RestTemplate(factory);
 
         var headers = new HttpHeaders();
-        headers.setBearerAuth(resendApiKey);
+        headers.set("api-key", brevoApiKey);
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("from", "MaquiControl <onboarding@resend.dev>");
-        payload.put("to", List.of(to));
-        payload.put("subject", "MaquiControl — Código para cambiar contraseña");
-        payload.put("text",
+        String texto =
             "Hola " + nombre + ",\n\n" +
             "Tu código de verificación para cambiar la contraseña es:\n\n" +
             "        " + codigo + "\n\n" +
             "Este código expira en 15 minutos.\n" +
             "Si no solicitaste este cambio, ignora este mensaje.\n\n" +
-            "— MaquiControl"
-        );
+            "— MaquiControl";
 
-        restTemplate.postForEntity("https://api.resend.com/emails",
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("sender", Map.of("name", "MaquiControl", "email", "brayanrojasedu@gmail.com"));
+        payload.put("to", List.of(Map.of("email", to)));
+        payload.put("subject", "MaquiControl — Código para cambiar contraseña");
+        payload.put("textContent", texto);
+
+        restTemplate.postForEntity("https://api.brevo.com/v3/smtp/email",
             new HttpEntity<>(payload, headers), String.class);
     }
 
