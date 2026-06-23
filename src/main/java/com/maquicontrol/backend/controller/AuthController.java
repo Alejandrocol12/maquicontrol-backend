@@ -3,8 +3,11 @@ package com.maquicontrol.backend.controller;
 import com.maquicontrol.backend.config.JwtUtil;
 import com.maquicontrol.backend.model.Usuario;
 import com.maquicontrol.backend.repository.UsuarioRepository;
+import com.maquicontrol.backend.service.CodigoVerificacionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +23,8 @@ public class AuthController {
     @Autowired private UsuarioRepository usuarioRepo;
     @Autowired private JwtUtil jwtUtil;
     @Autowired private PasswordEncoder passwordEncoder;
+    @Autowired private JavaMailSender mailSender;
+    @Autowired private CodigoVerificacionService codigoService;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Map<String, String> body) {
@@ -66,19 +71,46 @@ public class AuthController {
         }).orElse(ResponseEntity.status(401).build());
     }
 
+    @PostMapping("/enviar-codigo")
+    public ResponseEntity<?> enviarCodigo(Authentication auth) {
+        if (auth == null) return ResponseEntity.status(401).build();
+        var opt = usuarioRepo.findByEmail(auth.getName());
+        if (opt.isEmpty()) return ResponseEntity.status(401).build();
+        Usuario u = opt.get();
+        String codigo = codigoService.generar(u.getEmail());
+        try {
+            SimpleMailMessage msg = new SimpleMailMessage();
+            msg.setTo(u.getEmail());
+            msg.setSubject("MaquiControl — Código para cambiar contraseña");
+            msg.setText(
+                "Hola " + u.getNombre() + ",\n\n" +
+                "Tu código de verificación para cambiar la contraseña es:\n\n" +
+                "        " + codigo + "\n\n" +
+                "Este código expira en 15 minutos.\n" +
+                "Si no solicitaste este cambio, ignora este mensaje.\n\n" +
+                "— MaquiControl"
+            );
+            mailSender.send(msg);
+            return ResponseEntity.ok(Map.of("ok", true));
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).body(Map.of("error", "No se pudo enviar el correo: " + ex.getMessage()));
+        }
+    }
+
     @PutMapping("/password")
     public ResponseEntity<?> changePassword(@RequestBody Map<String, String> body, Authentication auth) {
         if (auth == null) return ResponseEntity.status(401).build();
-        return usuarioRepo.findByEmail(auth.getName()).map(u -> {
-            if (!passwordEncoder.matches(body.get("actual"), u.getPassword()))
-                return ResponseEntity.badRequest().body(Map.of("error", "La contraseña actual es incorrecta"));
-            String nueva = body.get("nueva");
-            if (nueva == null || nueva.length() < 6)
-                return ResponseEntity.badRequest().body(Map.of("error", "La nueva contraseña debe tener al menos 6 caracteres"));
-            u.setPassword(passwordEncoder.encode(nueva));
-            usuarioRepo.save(u);
-            return ResponseEntity.ok(Map.of("ok", true));
-        }).orElse(ResponseEntity.status(401).build());
+        var opt = usuarioRepo.findByEmail(auth.getName());
+        if (opt.isEmpty()) return ResponseEntity.status(401).build();
+        Usuario u = opt.get();
+        if (!codigoService.verificar(u.getEmail(), body.get("codigo")))
+            return ResponseEntity.badRequest().body(Map.of("error", "Código incorrecto o expirado"));
+        String nueva = body.get("nueva");
+        if (nueva == null || nueva.length() < 6)
+            return ResponseEntity.badRequest().body(Map.of("error", "La nueva contraseña debe tener al menos 6 caracteres"));
+        u.setPassword(passwordEncoder.encode(nueva));
+        usuarioRepo.save(u);
+        return ResponseEntity.ok(Map.of("ok", true));
     }
 
     private Map<String, Object> buildResponse(Usuario u) {
