@@ -5,14 +5,16 @@ import com.maquicontrol.backend.model.Usuario;
 import com.maquicontrol.backend.repository.UsuarioRepository;
 import com.maquicontrol.backend.service.CodigoVerificacionService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -23,8 +25,10 @@ public class AuthController {
     @Autowired private UsuarioRepository usuarioRepo;
     @Autowired private JwtUtil jwtUtil;
     @Autowired private PasswordEncoder passwordEncoder;
-    @Autowired private JavaMailSender mailSender;
     @Autowired private CodigoVerificacionService codigoService;
+
+    @Value("${resend.api-key:}")
+    private String resendApiKey;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Map<String, String> body) {
@@ -79,18 +83,7 @@ public class AuthController {
         Usuario u = opt.get();
         String codigo = codigoService.generar(u.getEmail());
         try {
-            SimpleMailMessage msg = new SimpleMailMessage();
-            msg.setTo(u.getEmail());
-            msg.setSubject("MaquiControl — Código para cambiar contraseña");
-            msg.setText(
-                "Hola " + u.getNombre() + ",\n\n" +
-                "Tu código de verificación para cambiar la contraseña es:\n\n" +
-                "        " + codigo + "\n\n" +
-                "Este código expira en 15 minutos.\n" +
-                "Si no solicitaste este cambio, ignora este mensaje.\n\n" +
-                "— MaquiControl"
-            );
-            mailSender.send(msg);
+            enviarEmailResend(u.getEmail(), u.getNombre(), codigo);
             return ResponseEntity.ok(Map.of("ok", true));
         } catch (Exception ex) {
             return ResponseEntity.status(500).body(Map.of("error", "No se pudo enviar el correo: " + ex.getMessage()));
@@ -111,6 +104,33 @@ public class AuthController {
         u.setPassword(passwordEncoder.encode(nueva));
         usuarioRepo.save(u);
         return ResponseEntity.ok(Map.of("ok", true));
+    }
+
+    private void enviarEmailResend(String to, String nombre, String codigo) {
+        var factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(5000);
+        factory.setReadTimeout(10000);
+        var restTemplate = new RestTemplate(factory);
+
+        var headers = new HttpHeaders();
+        headers.setBearerAuth(resendApiKey);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("from", "MaquiControl <onboarding@resend.dev>");
+        payload.put("to", List.of(to));
+        payload.put("subject", "MaquiControl — Código para cambiar contraseña");
+        payload.put("text",
+            "Hola " + nombre + ",\n\n" +
+            "Tu código de verificación para cambiar la contraseña es:\n\n" +
+            "        " + codigo + "\n\n" +
+            "Este código expira en 15 minutos.\n" +
+            "Si no solicitaste este cambio, ignora este mensaje.\n\n" +
+            "— MaquiControl"
+        );
+
+        restTemplate.postForEntity("https://api.resend.com/emails",
+            new HttpEntity<>(payload, headers), String.class);
     }
 
     private Map<String, Object> buildResponse(Usuario u) {
