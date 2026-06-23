@@ -125,7 +125,7 @@ public class AuthController {
             "— MaquiControl";
 
         Map<String, Object> payload = new HashMap<>();
-        payload.put("sender", Map.of("name", "MaquiControl", "email", "brayanrojasedu@gmail.com"));
+        payload.put("sender", Map.of("name", "MaquiControl", "email", "alejorojas9.r@gmail.com"));
         payload.put("to", List.of(Map.of("email", to)));
         payload.put("subject", "MaquiControl — Código para cambiar contraseña");
         payload.put("textContent", texto);
