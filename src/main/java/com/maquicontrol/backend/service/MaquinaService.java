@@ -34,6 +34,10 @@ public class MaquinaService {
         return maquinaRepository.save(maquina);
     }
 
+    public Maquina guardarDirecto(Maquina maquina) {
+        return maquinaRepository.save(maquina);
+    }
+
     @Transactional
     public Maquina actualizar(Long id, Maquina maquinaActualizada) {
         Maquina maquina = maquinaRepository.findById(id)

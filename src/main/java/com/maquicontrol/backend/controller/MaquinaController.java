@@ -8,6 +8,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/maquinaria")
@@ -39,6 +40,16 @@ public class MaquinaController {
     @PutMapping("/{id}")
     public ResponseEntity<Maquina> actualizar(@PathVariable Long id, @RequestBody Maquina maquina) {
         return ResponseEntity.ok(maquinaService.actualizar(id, maquina));
+    }
+
+    @PutMapping("/{id}/ubicacion")
+    public ResponseEntity<?> actualizarUbicacion(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        return maquinaService.obtenerPorId(id).map(m -> {
+            m.setLatitud(body.get("latitud") != null ? ((Number) body.get("latitud")).doubleValue() : null);
+            m.setLongitud(body.get("longitud") != null ? ((Number) body.get("longitud")).doubleValue() : null);
+            m.setUbicacionNombre(body.get("ubicacionNombre") != null ? body.get("ubicacionNombre").toString() : null);
+            return ResponseEntity.ok(maquinaService.guardarDirecto(m));
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")

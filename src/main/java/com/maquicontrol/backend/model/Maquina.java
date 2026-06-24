@@ -21,6 +21,10 @@ public class Maquina {
     private double valorHoraOperador;
     private double valorHoraMaquina;
 
+    private Double latitud;
+    private Double longitud;
+    private String ubicacionNombre;
+
     // Getters y Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -51,4 +55,13 @@ public class Maquina {
 
     public double getValorHoraMaquina() { return valorHoraMaquina; }
     public void setValorHoraMaquina(double valorHoraMaquina) { this.valorHoraMaquina = valorHoraMaquina; }
+
+    public Double getLatitud() { return latitud; }
+    public void setLatitud(Double latitud) { this.latitud = latitud; }
+
+    public Double getLongitud() { return longitud; }
+    public void setLongitud(Double longitud) { this.longitud = longitud; }
+
+    public String getUbicacionNombre() { return ubicacionNombre; }
+    public void setUbicacionNombre(String ubicacionNombre) { this.ubicacionNombre = ubicacionNombre; }
 }
