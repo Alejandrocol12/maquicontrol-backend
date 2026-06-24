@@ -1,6 +1,9 @@
 package com.maquicontrol.backend.controller;
 
 import com.maquicontrol.backend.model.Maquina;
+import com.maquicontrol.backend.repository.MaquinaRepository;
+import com.maquicontrol.backend.repository.OperadorRepository;
+import com.maquicontrol.backend.repository.UsuarioRepository;
 import com.maquicontrol.backend.service.MaquinaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -15,8 +18,21 @@ import java.util.Map;
 @CrossOrigin(origins = "*")
 public class MaquinaController {
 
-    @Autowired
-    private MaquinaService maquinaService;
+    @Autowired private MaquinaService maquinaService;
+    @Autowired private UsuarioRepository usuarioRepo;
+    @Autowired private OperadorRepository operadorRepo;
+    @Autowired private MaquinaRepository maquinaRepo;
+
+    // Endpoint para operadores: devuelve las máquinas asignadas a ellos
+    @GetMapping("/mis-maquinas")
+    public List<Maquina> misMaquinas(Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return usuarioRepo.findById(userId)
+            .filter(u -> u.getOperadorId() != null)
+            .flatMap(u -> operadorRepo.findById(u.getOperadorId()))
+            .map(op -> maquinaRepo.findByUsuarioIdAndOperadorNombre(op.getUsuarioId(), op.getNombre()))
+            .orElse(List.of());
+    }
 
     @GetMapping
     public List<Maquina> obtenerTodas(Authentication auth) {

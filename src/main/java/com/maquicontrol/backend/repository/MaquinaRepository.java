@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface MaquinaRepository extends JpaRepository<Maquina, Long> {
     List<Maquina> findByUsuarioId(Long usuarioId);
     Optional<Maquina> findByUsuarioIdAndNombre(Long usuarioId, String nombre);
+    List<Maquina> findByUsuarioIdAndOperadorNombre(Long usuarioId, String operadorNombre);
 }
