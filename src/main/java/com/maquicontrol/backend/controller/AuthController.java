@@ -90,6 +90,41 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/pin/configurar")
+    public ResponseEntity<?> configurarPin(@RequestBody Map<String, String> body, Authentication auth) {
+        if (auth == null) return ResponseEntity.status(401).build();
+        String pin = body.get("pin");
+        if (pin == null || !pin.matches("\\d{4}"))
+            return ResponseEntity.badRequest().body(Map.of("error", "El PIN debe ser exactamente 4 dígitos numéricos"));
+        return usuarioRepo.findById((Long) auth.getPrincipal()).map(u -> {
+            u.setPin(passwordEncoder.encode(pin));
+            usuarioRepo.save(u);
+            return ResponseEntity.ok(userDto(u));
+        }).orElse(ResponseEntity.status(401).build());
+    }
+
+    @DeleteMapping("/pin")
+    public ResponseEntity<?> eliminarPin(Authentication auth) {
+        if (auth == null) return ResponseEntity.status(401).build();
+        return usuarioRepo.findById((Long) auth.getPrincipal()).map(u -> {
+            u.setPin(null);
+            usuarioRepo.save(u);
+            return ResponseEntity.ok(userDto(u));
+        }).orElse(ResponseEntity.status(401).build());
+    }
+
+    @PostMapping("/pin/login")
+    public ResponseEntity<?> loginPin(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        String pin = body.get("pin");
+        if (email == null || pin == null)
+            return ResponseEntity.badRequest().body(Map.of("error", "Email y PIN requeridos"));
+        return usuarioRepo.findByEmail(email)
+            .filter(u -> u.isActivo() && u.getPin() != null && passwordEncoder.matches(pin, u.getPin()))
+            .map(u -> ResponseEntity.ok(buildResponse(u)))
+            .orElse(ResponseEntity.status(401).body(Map.of("error", "Email o PIN incorrecto")));
+    }
+
     @PutMapping("/password")
     public ResponseEntity<?> changePassword(@RequestBody Map<String, String> body, Authentication auth) {
         if (auth == null) return ResponseEntity.status(401).build();
@@ -147,6 +182,7 @@ public class AuthController {
         dto.put("rol", u.getRol());
         dto.put("activo", u.isActivo());
         dto.put("operadorId", u.getOperadorId());
+        dto.put("hasPin", u.getPin() != null);
         return dto;
     }
 }

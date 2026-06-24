@@ -30,6 +30,8 @@ public class Usuario {
 
     private Long operadorId;
 
+    private String pin;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -53,4 +55,7 @@ public class Usuario {
 
     public Long getOperadorId() { return operadorId; }
     public void setOperadorId(Long operadorId) { this.operadorId = operadorId; }
+
+    public String getPin() { return pin; }
+    public void setPin(String pin) { this.pin = pin; }
 }
