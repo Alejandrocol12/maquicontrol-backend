@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -113,8 +116,9 @@ public class IaController {
                     break;
                 }
             }
-            System.out.println("[IA] Texto extraído: '" + text + "'");
+            System.out.println("[IA] Texto extraído (raw): '" + text + "'");
 
+            // Extraer el bloque JSON ignorando markdown y texto adicional
             text = text.replaceAll("(?s)```json\\s*", "").replaceAll("(?s)```\\s*", "").trim();
             int inicio = text.indexOf('{');
             int fin    = text.lastIndexOf('}');
@@ -122,7 +126,14 @@ public class IaController {
                 text = text.substring(inicio, fin + 1);
             }
 
-            return ResponseEntity.ok(mapper.readTree(text));
+            // Validar que el JSON es parseable
+            mapper.readTree(text); // lanza excepción si es inválido
+            System.out.println("[IA] JSON final: " + text);
+
+            // Devolver el JSON directamente como string para evitar re-serialización
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            return new ResponseEntity<>(text, headers, HttpStatus.OK);
 
         } catch (Exception e) {
             System.out.println("[IA] Exception: " + e.getMessage());
