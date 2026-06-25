@@ -137,14 +137,10 @@ public class WhatsAppController {
             ? String.valueOf((int) totalSemana)
             : String.valueOf(totalSemana);
 
-        StringBuilder respuesta = new StringBuilder();
-        respuesta.append(String.format("✅ *%sh registradas* para hoy%s.\n📊 Total esta semana: *%sh*",
-            horasTxt, maquinaTxt, totalTxt));
-        if (maquina != null && valorHoraMaquina > 0) {
-            double ingresoGenerado = parsed.horas * valorHoraMaquina;
-            respuesta.append(String.format("\n💰 Ingreso generado: *$%s*",
-                String.format("%,.0f", ingresoGenerado).replace(',', '.')));
-        }
+        String respuesta = String.format(
+            "✅ *%sh registradas* para hoy%s.\n📊 Acumulado esta semana: *%sh*",
+            horasTxt, maquinaTxt, totalTxt
+        );
 
         return twiml(respuesta.toString());
     }
