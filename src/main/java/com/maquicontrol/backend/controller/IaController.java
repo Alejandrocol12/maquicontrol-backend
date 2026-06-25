@@ -47,13 +47,20 @@ public class IaController {
                 );
             }
 
-            String prompt = "Eres un asistente que extrae datos de facturas colombianas de taller o proveedor. " +
-                "Analiza este documento y responde SOLO con JSON válido, sin explicación ni markdown. " +
-                "Formato exacto: {\"descripcion\":\"descripción breve del gasto\"," +
-                "\"monto\":0," +
-                "\"categoria\":\"una de exactamente: Repuestos, Lubricantes, Combustible, Reparación, Otros\"," +
-                "\"fecha\":\"YYYY-MM-DD\"}. " +
-                "El monto debe ser número sin puntos ni símbolos. Si no puedes leer un campo usa null.";
+            String prompt = "Eres un asistente experto en facturas colombianas de taller y proveedores. " +
+                "Analiza este documento y extrae los datos principales. " +
+                "Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional, sin markdown. " +
+                "Formato exacto (usa estos campos exactos): " +
+                "{\"descripcion\":\"descripción breve del servicio o producto\"," +
+                "\"monto\":150000," +
+                "\"categoria\":\"Repuestos\"," +
+                "\"fecha\":\"2024-01-15\"}. " +
+                "Reglas: " +
+                "- descripcion: texto corto describiendo qué se compró o reparó. " +
+                "- monto: número entero en pesos colombianos, sin puntos ni símbolos. " +
+                "- categoria: DEBE ser exactamente una de estas opciones: Repuestos, Lubricantes, Combustible, Reparación, Otros. " +
+                "- fecha: formato YYYY-MM-DD. Si no ves fecha clara, usa la fecha de hoy. " +
+                "- Si no puedes leer algún campo, usa tu mejor estimación. Solo usa null si el documento no tiene ninguna información relevante.";
 
             Map<String, Object> requestBody = Map.of(
                 "model", MODEL,
@@ -79,9 +86,23 @@ public class IaController {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
             JsonNode root = mapper.readTree(response.body());
+
+            // Verificar que la API respondió correctamente
+            if (root.has("error")) {
+                String errMsg = root.path("error").path("message").asText(root.path("error").asText());
+                return ResponseEntity.status(502).body(Map.of("error", "Anthropic: " + errMsg));
+            }
+
             String text = root.path("content").get(0).path("text").asText();
-            // Limpiar posibles bloques markdown que Claude pueda agregar
+            System.out.println("[IA] Claude raw: " + text);
+            // Quitar bloques markdown y extraer el objeto JSON
             text = text.replaceAll("(?s)```json\\s*", "").replaceAll("(?s)```\\s*", "").trim();
+            // Si hay texto antes del {, extraer sólo el bloque JSON
+            int inicio = text.indexOf('{');
+            int fin    = text.lastIndexOf('}');
+            if (inicio >= 0 && fin > inicio) {
+                text = text.substring(inicio, fin + 1);
+            }
 
             return ResponseEntity.ok(mapper.readTree(text));
 
