@@ -19,7 +19,7 @@ import java.util.Map;
 public class IaController {
 
     private static final String ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
-    private static final String MODEL = "claude-haiku-4-5-20251001";
+    private static final String MODEL = "claude-3-5-haiku-20241022";
     private final ObjectMapper mapper = new ObjectMapper();
 
     @PostMapping("/api/ia/leer-factura")
