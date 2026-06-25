@@ -8,10 +8,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/pagos")
-@CrossOrigin(origins = "*")
 public class PagoClienteController {
 
     @Autowired
@@ -49,12 +49,22 @@ public class PagoClienteController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<PagoCliente> actualizar(@PathVariable Long id, @RequestBody PagoCliente pago) {
+    public ResponseEntity<PagoCliente> actualizar(@PathVariable Long id, @RequestBody PagoCliente pago, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        Optional<PagoCliente> existente = pagoService.obtenerPorId(id);
+        if (existente.isEmpty() || !userId.equals(existente.get().getUsuarioId())) {
+            return ResponseEntity.status(403).build();
+        }
         return ResponseEntity.ok(pagoService.actualizar(id, pago));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+    public ResponseEntity<Void> eliminar(@PathVariable Long id, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        Optional<PagoCliente> existente = pagoService.obtenerPorId(id);
+        if (existente.isEmpty() || !userId.equals(existente.get().getUsuarioId())) {
+            return ResponseEntity.status(403).build();
+        }
         pagoService.eliminar(id);
         return ResponseEntity.noContent().build();
     }

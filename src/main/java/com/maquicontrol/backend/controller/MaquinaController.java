@@ -12,10 +12,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/maquinaria")
-@CrossOrigin(origins = "*")
 public class MaquinaController {
 
     @Autowired private MaquinaService maquinaService;
@@ -54,7 +54,12 @@ public class MaquinaController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Maquina> actualizar(@PathVariable Long id, @RequestBody Maquina maquina) {
+    public ResponseEntity<Maquina> actualizar(@PathVariable Long id, @RequestBody Maquina maquina, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        Optional<Maquina> existente = maquinaService.obtenerPorId(id);
+        if (existente.isEmpty() || !userId.equals(existente.get().getUsuarioId())) {
+            return ResponseEntity.status(403).build();
+        }
         return ResponseEntity.ok(maquinaService.actualizar(id, maquina));
     }
 

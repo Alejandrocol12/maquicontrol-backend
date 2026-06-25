@@ -34,7 +34,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @RestController
-@CrossOrigin(origins = "*")
 public class WhatsAppController {
 
     @Autowired private OperadorRepository operadorRepo;

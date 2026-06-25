@@ -11,7 +11,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/horas")
-@CrossOrigin(origins = "*")
 public class HoraTrabajadaController {
 
     @Autowired

@@ -8,10 +8,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/salarios")
-@CrossOrigin(origins = "*")
 public class SalarioController {
 
     @Autowired
@@ -43,12 +43,22 @@ public class SalarioController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Salario> actualizar(@PathVariable Long id, @RequestBody Salario salario) {
+    public ResponseEntity<Salario> actualizar(@PathVariable Long id, @RequestBody Salario salario, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        Optional<Salario> existente = salarioService.obtenerPorId(id);
+        if (existente.isEmpty() || !userId.equals(existente.get().getUsuarioId())) {
+            return ResponseEntity.status(403).build();
+        }
         return ResponseEntity.ok(salarioService.actualizar(id, salario));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+    public ResponseEntity<Void> eliminar(@PathVariable Long id, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        Optional<Salario> existente = salarioService.obtenerPorId(id);
+        if (existente.isEmpty() || !userId.equals(existente.get().getUsuarioId())) {
+            return ResponseEntity.status(403).build();
+        }
         salarioService.eliminar(id);
         return ResponseEntity.noContent().build();
     }

@@ -12,7 +12,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
-@CrossOrigin(origins = "*")
 public class EnlaceCompartidoController {
 
     @Autowired private EnlaceCompartidoRepository enlaceRepo;

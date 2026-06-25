@@ -19,7 +19,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*")
 public class AuthController {
 
     @Autowired private UsuarioRepository usuarioRepo;
@@ -29,6 +28,9 @@ public class AuthController {
 
     @Value("${brevo.api-key:}")
     private String brevoApiKey;
+
+    @Value("${brevo.sender-email:alejorojas9.r@gmail.com}")
+    private String brevoSenderEmail;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Map<String, String> body) {
@@ -160,7 +162,7 @@ public class AuthController {
             "— MaquiControl";
 
         Map<String, Object> payload = new HashMap<>();
-        payload.put("sender", Map.of("name", "MaquiControl", "email", "alejorojas9.r@gmail.com"));
+        payload.put("sender", Map.of("name", "MaquiControl", "email", brevoSenderEmail));
         payload.put("to", List.of(Map.of("email", to)));
         payload.put("subject", "MaquiControl — Código para cambiar contraseña");
         payload.put("textContent", texto);

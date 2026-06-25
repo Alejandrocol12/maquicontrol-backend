@@ -11,10 +11,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/gastos")
-@CrossOrigin(origins = "*")
 public class GastoController {
 
     @Autowired
@@ -46,12 +46,22 @@ public class GastoController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Gasto> actualizar(@PathVariable Long id, @RequestBody Gasto gasto) {
+    public ResponseEntity<Gasto> actualizar(@PathVariable Long id, @RequestBody Gasto gasto, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        Optional<Gasto> existente = gastoService.obtenerPorId(id);
+        if (existente.isEmpty() || !userId.equals(existente.get().getUsuarioId())) {
+            return ResponseEntity.status(403).build();
+        }
         return ResponseEntity.ok(gastoService.actualizar(id, gasto));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+    public ResponseEntity<Void> eliminar(@PathVariable Long id, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        Optional<Gasto> existente = gastoService.obtenerPorId(id);
+        if (existente.isEmpty() || !userId.equals(existente.get().getUsuarioId())) {
+            return ResponseEntity.status(403).build();
+        }
         gastoService.eliminar(id);
         return ResponseEntity.noContent().build();
     }

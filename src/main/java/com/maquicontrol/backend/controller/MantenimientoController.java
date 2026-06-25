@@ -8,10 +8,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/mantenimientos")
-@CrossOrigin(origins = "*")
 public class MantenimientoController {
 
     @Autowired
@@ -43,12 +43,22 @@ public class MantenimientoController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Mantenimiento> actualizar(@PathVariable Long id, @RequestBody Mantenimiento mantenimiento) {
+    public ResponseEntity<Mantenimiento> actualizar(@PathVariable Long id, @RequestBody Mantenimiento mantenimiento, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        Optional<Mantenimiento> existente = mantenimientoService.obtenerPorId(id);
+        if (existente.isEmpty() || !userId.equals(existente.get().getUsuarioId())) {
+            return ResponseEntity.status(403).build();
+        }
         return ResponseEntity.ok(mantenimientoService.actualizar(id, mantenimiento));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+    public ResponseEntity<Void> eliminar(@PathVariable Long id, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        Optional<Mantenimiento> existente = mantenimientoService.obtenerPorId(id);
+        if (existente.isEmpty() || !userId.equals(existente.get().getUsuarioId())) {
+            return ResponseEntity.status(403).build();
+        }
         mantenimientoService.eliminar(id);
         return ResponseEntity.noContent().build();
     }

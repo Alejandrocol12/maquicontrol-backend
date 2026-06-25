@@ -10,10 +10,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/operadores")
-@CrossOrigin(origins = "*")
 public class OperadorController {
 
     @Autowired private OperadorService operadorService;
@@ -39,12 +39,22 @@ public class OperadorController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Operador> actualizar(@PathVariable Long id, @RequestBody Operador operador) {
+    public ResponseEntity<Operador> actualizar(@PathVariable Long id, @RequestBody Operador operador, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        Optional<Operador> existente = operadorService.obtenerPorId(id);
+        if (existente.isEmpty() || !userId.equals(existente.get().getUsuarioId())) {
+            return ResponseEntity.status(403).build();
+        }
         return ResponseEntity.ok(operadorService.actualizar(id, operador));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+    public ResponseEntity<Void> eliminar(@PathVariable Long id, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        Optional<Operador> existente = operadorService.obtenerPorId(id);
+        if (existente.isEmpty() || !userId.equals(existente.get().getUsuarioId())) {
+            return ResponseEntity.status(403).build();
+        }
         operadorService.eliminar(id);
         return ResponseEntity.noContent().build();
     }

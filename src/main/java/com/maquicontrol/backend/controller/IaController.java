@@ -19,7 +19,6 @@ import java.util.Base64;
 import java.util.Map;
 
 @RestController
-@CrossOrigin(origins = "*")
 public class IaController {
 
     private static final String ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";

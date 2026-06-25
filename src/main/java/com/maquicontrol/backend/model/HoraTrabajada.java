@@ -19,7 +19,7 @@ public class HoraTrabajada {
     private double horas;
     private String horaEntrada;
     private String horaSalida;
-    private int horometroInicio;
+    private double horometroInicio;
     private double horometroFin;
     private double valorHora;
     private LocalDate fecha;
@@ -53,8 +53,8 @@ public class HoraTrabajada {
     public String getHoraSalida() { return horaSalida; }
     public void setHoraSalida(String horaSalida) { this.horaSalida = horaSalida; }
 
-    public int getHorometroInicio() { return horometroInicio; }
-    public void setHorometroInicio(int horometroInicio) { this.horometroInicio = horometroInicio; }
+    public double getHorometroInicio() { return horometroInicio; }
+    public void setHorometroInicio(double horometroInicio) { this.horometroInicio = horometroInicio; }
 
     public double getHorometroFin() { return horometroFin; }
     public void setHorometroFin(double horometroFin) { this.horometroFin = horometroFin; }
