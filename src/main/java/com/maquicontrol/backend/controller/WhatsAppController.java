@@ -10,6 +10,7 @@ import com.maquicontrol.backend.model.Operador;
 import com.maquicontrol.backend.repository.HoraTrabajadaRepository;
 import com.maquicontrol.backend.repository.MaquinaRepository;
 import com.maquicontrol.backend.repository.OperadorRepository;
+import com.maquicontrol.backend.service.HoraTrabajadaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -35,6 +36,7 @@ public class WhatsAppController {
     @Autowired private OperadorRepository operadorRepo;
     @Autowired private MaquinaRepository maquinaRepo;
     @Autowired private HoraTrabajadaRepository horaRepo;
+    @Autowired private HoraTrabajadaService horaService;
 
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -73,21 +75,30 @@ public class WhatsAppController {
         // 4. Buscar máquina
         Maquina maquina = resolverMaquina(parsed.maquinaMencionada, operador);
 
-        // 5. Guardar registro de horas
+        // 5. Buscar valorHora del operador en registros previos
+        double valorHora = horaRepo
+            .findByOperadorIdOrNombre(operador.getId(), operador.getNombre())
+            .stream()
+            .filter(h -> h.getValorHora() > 0)
+            .mapToDouble(HoraTrabajada::getValorHora)
+            .max()
+            .orElse(0.0);
+
+        // 6. Guardar usando el servicio (maneja faena y horómetro automáticamente)
         HoraTrabajada hora = new HoraTrabajada();
-        hora.setUsuarioId(operador.getUsuarioId());
         hora.setOperadorId(operador.getId());
         hora.setOperadorNombre(operador.getNombre());
         hora.setHoras(parsed.horas);
         hora.setFecha(LocalDate.now());
+        hora.setValorHora(valorHora);
         if (maquina != null) {
             hora.setMaquinaId(maquina.getId());
             hora.setMaquinaNombre(maquina.getNombre());
         }
-        horaRepo.save(hora);
-        System.out.println("[WA] Guardadas " + parsed.horas + "h para " + operador.getNombre());
+        horaService.guardar(operador.getUsuarioId(), hora);
+        System.out.println("[WA] Guardadas " + parsed.horas + "h para " + operador.getNombre() + " valorHora=" + valorHora);
 
-        // 6. Calcular total de la semana
+        // 7. Calcular total de la semana
         LocalDate inicioSemana = LocalDate.now().with(DayOfWeek.MONDAY);
         double totalSemana = horaRepo
             .findByOperadorIdOrNombre(operador.getId(), operador.getNombre())
@@ -96,7 +107,7 @@ public class WhatsAppController {
             .mapToDouble(HoraTrabajada::getHoras)
             .sum();
 
-        // 7. Construir respuesta
+        // 8. Construir respuesta
         String horasTxt = parsed.horas == Math.floor(parsed.horas)
             ? String.valueOf((int) parsed.horas)
             : String.valueOf(parsed.horas);
