@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface OperadorRepository extends JpaRepository<Operador, Long> {
     List<Operador> findByUsuarioId(Long usuarioId);
+    List<Operador> findByTelefono(String telefono);
 }
