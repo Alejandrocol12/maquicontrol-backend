@@ -2,6 +2,8 @@ package com.maquicontrol.backend.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -11,7 +13,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Base64;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -33,63 +34,70 @@ public class IaController {
             String mediaType = file.getContentType() != null ? file.getContentType() : "image/jpeg";
             boolean esPdf = "application/pdf".equals(mediaType);
 
-            // Bloque de contenido según tipo de archivo
-            Map<String, Object> contenido;
+            // Construir el bloque de contenido con Jackson ObjectNode
+            ObjectNode contentBlock = mapper.createObjectNode();
             if (esPdf) {
-                contenido = Map.of(
-                    "type", "document",
-                    "source", Map.of("type", "base64", "media_type", "application/pdf", "data", base64)
-                );
+                contentBlock.put("type", "document");
+                ObjectNode source = mapper.createObjectNode();
+                source.put("type", "base64");
+                source.put("media_type", "application/pdf");
+                source.put("data", base64);
+                contentBlock.set("source", source);
             } else {
-                contenido = Map.of(
-                    "type", "image",
-                    "source", Map.of("type", "base64", "media_type", mediaType, "data", base64)
-                );
+                contentBlock.put("type", "image");
+                ObjectNode source = mapper.createObjectNode();
+                source.put("type", "base64");
+                source.put("media_type", mediaType);
+                source.put("data", base64);
+                contentBlock.set("source", source);
             }
 
             String prompt = "Eres un asistente experto en facturas colombianas de taller y proveedores. " +
                 "Analiza este documento y extrae los datos principales. " +
                 "Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional, sin markdown. " +
-                "Formato exacto (usa estos campos exactos): " +
-                "{\"descripcion\":\"descripción breve del servicio o producto\"," +
-                "\"monto\":150000," +
-                "\"categoria\":\"Repuestos\"," +
-                "\"fecha\":\"2024-01-15\"}. " +
-                "Reglas: " +
-                "- descripcion: texto corto describiendo qué se compró o reparó. " +
-                "- monto: número entero en pesos colombianos, sin puntos ni símbolos. " +
-                "- categoria: DEBE ser exactamente una de estas opciones: Repuestos, Lubricantes, Combustible, Reparación, Otros. " +
-                "- fecha: formato YYYY-MM-DD. Si no ves fecha clara, usa la fecha de hoy. " +
-                "- Si no puedes leer algún campo, usa tu mejor estimación. Solo usa null si el documento no tiene ninguna información relevante.";
+                "Formato exacto: {\"descripcion\":\"descripción breve\",\"monto\":150000,\"categoria\":\"Repuestos\",\"fecha\":\"2024-01-15\"}. " +
+                "categoria DEBE ser exactamente una de: Repuestos, Lubricantes, Combustible, Reparación, Otros. " +
+                "monto es número entero sin puntos ni símbolos. fecha en formato YYYY-MM-DD.";
 
-            Map<String, Object> requestBody = Map.of(
-                "model", MODEL,
-                "max_tokens", 512,
-                "messages", List.of(Map.of(
-                    "role", "user",
-                    "content", List.of(
-                        contenido,
-                        Map.of("type", "text", "text", prompt)
-                    )
-                ))
-            );
+            ObjectNode textBlock = mapper.createObjectNode();
+            textBlock.put("type", "text");
+            textBlock.put("text", prompt);
+
+            ArrayNode contentArray = mapper.createArrayNode();
+            contentArray.add(contentBlock);
+            contentArray.add(textBlock);
+
+            ObjectNode message = mapper.createObjectNode();
+            message.put("role", "user");
+            message.set("content", contentArray);
+
+            ArrayNode messages = mapper.createArrayNode();
+            messages.add(message);
+
+            ObjectNode requestBody = mapper.createObjectNode();
+            requestBody.put("model", MODEL);
+            requestBody.put("max_tokens", 512);
+            requestBody.set("messages", messages);
+
+            String jsonBody = mapper.writeValueAsString(requestBody);
+            System.out.println("[IA] Enviando a Anthropic, modelo=" + MODEL + ", mediaType=" + mediaType);
+            System.out.println("[IA] JSON (sin base64): " + jsonBody.substring(0, Math.min(300, jsonBody.length())));
 
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(ANTHROPIC_URL))
                 .header("x-api-key", apiKey)
                 .header("anthropic-version", "2023-06-01")
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(requestBody)))
+                .header("content-type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                 .build();
 
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             System.out.println("[IA] HTTP status: " + response.statusCode());
-            System.out.println("[IA] Body: " + response.body());
+            System.out.println("[IA] Response: " + response.body().substring(0, Math.min(500, response.body().length())));
 
             JsonNode root = mapper.readTree(response.body());
 
-            // Verificar que la API respondió correctamente
             if (root.has("error")) {
                 String errMsg = root.path("error").path("message").asText(root.path("error").asText());
                 System.out.println("[IA] Error Anthropic: " + errMsg);
@@ -97,10 +105,9 @@ public class IaController {
             }
 
             String text = root.path("content").get(0).path("text").asText();
-            System.out.println("[IA] Claude raw: " + text);
-            // Quitar bloques markdown y extraer el objeto JSON
+            System.out.println("[IA] Claude respuesta: " + text);
+
             text = text.replaceAll("(?s)```json\\s*", "").replaceAll("(?s)```\\s*", "").trim();
-            // Si hay texto antes del {, extraer sólo el bloque JSON
             int inicio = text.indexOf('{');
             int fin    = text.lastIndexOf('}');
             if (inicio >= 0 && fin > inicio) {
@@ -110,7 +117,8 @@ public class IaController {
             return ResponseEntity.ok(mapper.readTree(text));
 
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("error", "No se pudo procesar el documento: " + e.getMessage()));
+            System.out.println("[IA] Exception: " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
         }
     }
 }
