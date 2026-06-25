@@ -142,11 +142,29 @@ public class EnlaceCompartidoController {
         resumen.put("utilidadNeta",   totalIngresos - totalGastos);
         resumen.put("totalFaenas",    faenas.size());
 
+        List<Map<String, Object>> gastosDto = gastoRepo
+            .findByUsuarioIdAndMaquinaNombre(enlace.getUsuarioId(), enlace.getMaquinaNombre())
+            .stream()
+            .sorted(Comparator.comparing(
+                g -> g.getFecha() != null ? g.getFecha().toString() : "",
+                Comparator.reverseOrder()
+            ))
+            .map(g -> {
+                Map<String, Object> d = new LinkedHashMap<>();
+                d.put("fecha",       g.getFecha());
+                d.put("descripcion", g.getDescripcion());
+                d.put("categoria",   g.getCategoria());
+                d.put("monto",       g.getMonto());
+                return d;
+            })
+            .collect(Collectors.toList());
+
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("nombre",         enlace.getNombre());
         response.put("maquina",        maquinaDto);
         response.put("resumen",        resumen);
         response.put("faenas",         faenasDto);
+        response.put("gastos",         gastosDto);
         response.put("mantenimientos", mants);
 
         return ResponseEntity.ok(response);
