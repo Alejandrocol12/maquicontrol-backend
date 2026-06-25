@@ -26,7 +26,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -61,7 +63,12 @@ public class WhatsAppController {
         Operador operador = encontrarOperadorPorTelefono(tel, telCorto);
 
         if (operador == null) {
-            return twiml("No estás registrado en MaquiControl. Pide a tu administrador que agregue tu número *" + tel + "* en tu perfil de operador.");
+            return twiml(
+                "🏗️ *MaquiControl*\n" +
+                "─────────────────\n" +
+                "⚠️ Número no registrado\n" +
+                "Pide a tu administrador que agregue el número *" + tel + "* en tu perfil de operador."
+            );
         }
 
         // 3. Parsear horas y máquina del mensaje
@@ -69,9 +76,13 @@ public class WhatsAppController {
 
         if (parsed.horas <= 0) {
             return twiml(
+                "🏗️ *MaquiControl*\n" +
+                "─────────────────\n" +
                 "Hola *" + operador.getNombre() + "* 👋\n" +
-                "No entendí la cantidad de horas. Escríbeme así:\n" +
-                "• *8 horas*\n• *9h CAT 320*\n• *7.5 horas excavadora*"
+                "No entendí las horas. Escríbeme así:\n\n" +
+                "• *8 horas*\n" +
+                "• *9h CAT 320*\n" +
+                "• *7.5 horas excavadora*"
             );
         }
 
@@ -132,15 +143,22 @@ public class WhatsAppController {
         String horasTxt = parsed.horas == Math.floor(parsed.horas)
             ? String.valueOf((int) parsed.horas)
             : String.valueOf(parsed.horas);
-        String maquinaTxt = maquina != null ? " en *" + maquina.getNombre() + "*" : "";
         String totalTxt = totalSemana == Math.floor(totalSemana)
             ? String.valueOf((int) totalSemana)
             : String.valueOf(totalSemana);
+        String maquinaTxt = maquina != null ? maquina.getNombre() : "Sin máquina asignada";
+        String fechaTxt = LocalDate.now()
+            .format(DateTimeFormatter.ofPattern("d MMM yyyy", new Locale("es", "CO")));
 
-        String respuesta = String.format(
-            "✅ *%sh registradas* para hoy%s.\n📊 Acumulado esta semana: *%sh*",
-            horasTxt, maquinaTxt, totalTxt
-        );
+        String respuesta =
+            "🏗️ *MaquiControl*\n" +
+            "─────────────────\n" +
+            "✅ *" + horasTxt + "h registradas*\n" +
+            "🚜 " + maquinaTxt + "\n" +
+            "📅 " + fechaTxt + "\n" +
+            "📊 Acumulado semana: *" + totalTxt + "h*\n" +
+            "─────────────────\n" +
+            "_Responde con tus horas para registrar_";
 
         return twiml(respuesta.toString());
     }
