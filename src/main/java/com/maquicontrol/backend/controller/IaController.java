@@ -20,7 +20,7 @@ import java.util.Map;
 public class IaController {
 
     private static final String ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
-    private static final String MODEL = "claude-3-haiku-20240307";
+    private static final String MODEL = "claude-haiku-4-5-20251001";
     private final ObjectMapper mapper = new ObjectMapper();
 
     @PostMapping("/api/ia/leer-factura")
@@ -76,7 +76,7 @@ public class IaController {
 
             ObjectNode requestBody = mapper.createObjectNode();
             requestBody.put("model", MODEL);
-            requestBody.put("max_tokens", 512);
+            requestBody.put("max_tokens", 2048);
             requestBody.set("messages", messages);
 
             String jsonBody = mapper.writeValueAsString(requestBody);
@@ -94,7 +94,7 @@ public class IaController {
 
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             System.out.println("[IA] HTTP status: " + response.statusCode());
-            System.out.println("[IA] Response: " + response.body().substring(0, Math.min(500, response.body().length())));
+            System.out.println("[IA] FULL response: " + response.body());
 
             JsonNode root = mapper.readTree(response.body());
 
@@ -104,8 +104,16 @@ public class IaController {
                 return ResponseEntity.status(502).body(Map.of("error", errMsg));
             }
 
-            String text = root.path("content").get(0).path("text").asText();
-            System.out.println("[IA] Claude respuesta: " + text);
+            // Buscar el primer bloque de tipo "text" (puede haber thinking blocks antes)
+            String text = "";
+            JsonNode contentArr = root.path("content");
+            for (JsonNode block : contentArr) {
+                if ("text".equals(block.path("type").asText())) {
+                    text = block.path("text").asText();
+                    break;
+                }
+            }
+            System.out.println("[IA] Texto extraído: '" + text + "'");
 
             text = text.replaceAll("(?s)```json\\s*", "").replaceAll("(?s)```\\s*", "").trim();
             int inicio = text.indexOf('{');
