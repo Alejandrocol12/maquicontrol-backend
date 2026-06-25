@@ -7,7 +7,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.maquicontrol.backend.model.HoraTrabajada;
 import com.maquicontrol.backend.model.Maquina;
 import com.maquicontrol.backend.model.Operador;
+import com.maquicontrol.backend.model.Ingreso;
 import com.maquicontrol.backend.repository.HoraTrabajadaRepository;
+import com.maquicontrol.backend.repository.IngresoRepository;
 import com.maquicontrol.backend.repository.MaquinaRepository;
 import com.maquicontrol.backend.repository.OperadorRepository;
 import com.maquicontrol.backend.service.HoraTrabajadaService;
@@ -36,6 +38,7 @@ public class WhatsAppController {
     @Autowired private OperadorRepository operadorRepo;
     @Autowired private MaquinaRepository maquinaRepo;
     @Autowired private HoraTrabajadaRepository horaRepo;
+    @Autowired private IngresoRepository ingresoRepo;
     @Autowired private HoraTrabajadaService horaService;
 
     private final ObjectMapper mapper = new ObjectMapper();
@@ -75,28 +78,46 @@ public class WhatsAppController {
         // 4. Buscar máquina
         Maquina maquina = resolverMaquina(parsed.maquinaMencionada, operador);
 
-        // 5. Buscar valorHora del operador en registros previos
-        double valorHora = horaRepo
-            .findByOperadorIdOrNombre(operador.getId(), operador.getNombre())
-            .stream()
-            .filter(h -> h.getValorHora() > 0)
-            .mapToDouble(HoraTrabajada::getValorHora)
-            .max()
-            .orElse(0.0);
+        // 5. Obtener tarifas directamente de la máquina asignada
+        double valorHoraOperador = (maquina != null && maquina.getValorHoraOperador() > 0)
+            ? maquina.getValorHoraOperador()
+            : horaRepo.findByOperadorIdOrNombre(operador.getId(), operador.getNombre())
+                .stream().filter(h -> h.getValorHora() > 0)
+                .mapToDouble(HoraTrabajada::getValorHora).max().orElse(0.0);
 
-        // 6. Guardar usando el servicio (maneja faena y horómetro automáticamente)
+        double valorHoraMaquina = (maquina != null) ? maquina.getValorHoraMaquina() : 0.0;
+
+        // 6. Guardar horas usando el servicio (maneja faena y horómetro automáticamente)
         HoraTrabajada hora = new HoraTrabajada();
         hora.setOperadorId(operador.getId());
         hora.setOperadorNombre(operador.getNombre());
         hora.setHoras(parsed.horas);
         hora.setFecha(LocalDate.now());
-        hora.setValorHora(valorHora);
+        hora.setValorHora(valorHoraOperador);
         if (maquina != null) {
             hora.setMaquinaId(maquina.getId());
             hora.setMaquinaNombre(maquina.getNombre());
         }
-        horaService.guardar(operador.getUsuarioId(), hora);
-        System.out.println("[WA] Guardadas " + parsed.horas + "h para " + operador.getNombre() + " valorHora=" + valorHora);
+        HoraTrabajada horaGuardada = horaService.guardar(operador.getUsuarioId(), hora);
+        System.out.println("[WA] Horas guardadas: " + parsed.horas + "h operador=" + operador.getNombre()
+            + " valorHoraOp=" + valorHoraOperador + " valorHoraMaq=" + valorHoraMaquina);
+
+        // 7. Crear Ingreso si la máquina tiene tarifa configurada
+        if (maquina != null && valorHoraMaquina > 0) {
+            double total = parsed.horas * valorHoraMaquina;
+            Ingreso ingreso = new Ingreso();
+            ingreso.setUsuarioId(operador.getUsuarioId());
+            ingreso.setMaquinaNombre(maquina.getNombre());
+            ingreso.setTipoTrabajo("Horas");
+            ingreso.setCantidad(parsed.horas);
+            ingreso.setValorUnitario(valorHoraMaquina);
+            ingreso.setTotal(total);
+            ingreso.setFecha(LocalDate.now());
+            ingreso.setDescripcion("Horas – " + maquina.getNombre() + " (WhatsApp)");
+            if (horaGuardada.getFaenaId() != null) ingreso.setFaenaId(horaGuardada.getFaenaId());
+            ingresoRepo.save(ingreso);
+            System.out.println("[WA] Ingreso creado: $" + total);
+        }
 
         // 7. Calcular total de la semana
         LocalDate inicioSemana = LocalDate.now().with(DayOfWeek.MONDAY);
@@ -107,7 +128,7 @@ public class WhatsAppController {
             .mapToDouble(HoraTrabajada::getHoras)
             .sum();
 
-        // 8. Construir respuesta
+        // 9. Construir respuesta
         String horasTxt = parsed.horas == Math.floor(parsed.horas)
             ? String.valueOf((int) parsed.horas)
             : String.valueOf(parsed.horas);
@@ -116,12 +137,16 @@ public class WhatsAppController {
             ? String.valueOf((int) totalSemana)
             : String.valueOf(totalSemana);
 
-        String respuesta = String.format(
-            "✅ *%sh registradas* para hoy%s.\n📊 Total esta semana: *%sh*",
-            horasTxt, maquinaTxt, totalTxt
-        );
+        StringBuilder respuesta = new StringBuilder();
+        respuesta.append(String.format("✅ *%sh registradas* para hoy%s.\n📊 Total esta semana: *%sh*",
+            horasTxt, maquinaTxt, totalTxt));
+        if (maquina != null && valorHoraMaquina > 0) {
+            double ingresoGenerado = parsed.horas * valorHoraMaquina;
+            respuesta.append(String.format("\n💰 Ingreso generado: *$%s*",
+                String.format("%,.0f", ingresoGenerado).replace(',', '.')));
+        }
 
-        return twiml(respuesta);
+        return twiml(respuesta.toString());
     }
 
     // Busca el operador probando distintos formatos de número
