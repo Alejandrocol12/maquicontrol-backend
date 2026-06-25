@@ -84,13 +84,16 @@ public class IaController {
                 .build();
 
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            System.out.println("[IA] HTTP status: " + response.statusCode());
+            System.out.println("[IA] Body: " + response.body());
 
             JsonNode root = mapper.readTree(response.body());
 
             // Verificar que la API respondió correctamente
             if (root.has("error")) {
                 String errMsg = root.path("error").path("message").asText(root.path("error").asText());
-                return ResponseEntity.status(502).body(Map.of("error", "Anthropic: " + errMsg));
+                System.out.println("[IA] Error Anthropic: " + errMsg);
+                return ResponseEntity.status(502).body(Map.of("error", errMsg));
             }
 
             String text = root.path("content").get(0).path("text").asText();
