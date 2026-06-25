@@ -107,6 +107,8 @@ public class WhatsAppController {
         if (maquina != null) {
             hora.setMaquinaId(maquina.getId());
             hora.setMaquinaNombre(maquina.getNombre());
+            // Partir del horómetro actual de la máquina para que el servicio lo actualice correctamente
+            hora.setHorometroInicio(maquina.getHorometroActual());
         }
         HoraTrabajada horaGuardada = horaService.guardar(operador.getUsuarioId(), hora);
         System.out.println("[WA] Horas guardadas: " + parsed.horas + "h operador=" + operador.getNombre()
@@ -123,7 +125,10 @@ public class WhatsAppController {
             ingreso.setValorUnitario(valorHoraMaquina);
             ingreso.setTotal(total);
             ingreso.setFecha(LocalDate.now());
-            ingreso.setDescripcion("Horas – " + maquina.getNombre() + " (WhatsApp)");
+            String hDesc = parsed.horas == Math.floor(parsed.horas)
+                ? String.valueOf((int) parsed.horas)
+                : String.valueOf(parsed.horas);
+            ingreso.setDescripcion(hDesc + "h — " + maquina.getNombre() + " (WhatsApp)");
             if (horaGuardada.getFaenaId() != null) ingreso.setFaenaId(horaGuardada.getFaenaId());
             ingresoRepo.save(ingreso);
             System.out.println("[WA] Ingreso creado: $" + total);
