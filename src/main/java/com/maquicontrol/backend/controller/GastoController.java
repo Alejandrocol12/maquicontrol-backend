@@ -78,10 +78,20 @@ public class GastoController {
         return gastoService.obtenerPorId(id)
             .filter(g -> g.getFacturaPdf() != null && g.getFacturaPdf().length > 0)
             .map(g -> ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_TYPE, "application/pdf")
+                .header(HttpHeaders.CONTENT_TYPE, detectarTipo(g.getFacturaNombre()))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + g.getFacturaNombre() + "\"")
                 .body(g.getFacturaPdf()))
             .orElse(ResponseEntity.notFound().build());
+    }
+
+    private static String detectarTipo(String nombre) {
+        if (nombre == null) return "application/pdf";
+        String n = nombre.toLowerCase();
+        if (n.endsWith(".png"))              return "image/png";
+        if (n.endsWith(".jpg") || n.endsWith(".jpeg")) return "image/jpeg";
+        if (n.endsWith(".webp"))             return "image/webp";
+        if (n.endsWith(".gif"))              return "image/gif";
+        return "application/pdf";
     }
 
     @DeleteMapping("/{id}/factura")
