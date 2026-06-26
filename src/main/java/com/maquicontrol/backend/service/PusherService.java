@@ -1,5 +1,6 @@
 package com.maquicontrol.backend.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maquicontrol.backend.repository.OperadorRepository;
 import com.maquicontrol.backend.repository.UsuarioRepository;
 import com.pusher.rest.Pusher;
@@ -21,6 +22,7 @@ public class PusherService {
 
     @Autowired private UsuarioRepository usuarioRepo;
     @Autowired private OperadorRepository operadorRepo;
+    @Autowired private ObjectMapper objectMapper;
 
     public PusherService(
         @Value("${pusher.app-id:}") String appId,
@@ -59,7 +61,10 @@ public class PusherService {
         }
         Long targetId = resolverAdminId(userId);
         try {
-            Result result = pusher.trigger("mc-" + targetId, evento, datos);
+            // Convertir con Jackson primero para evitar el error de Gson con LocalDate en Java 21
+            @SuppressWarnings("unchecked")
+            Map<String, Object> payload = objectMapper.convertValue(datos, Map.class);
+            Result result = pusher.trigger("mc-" + targetId, evento, payload);
             log.info("Pusher emitido — canal=mc-{} evento={} http={} msg={}",
                 targetId, evento, result.getHttpStatus(), result.getMessage());
         } catch (Exception e) {
