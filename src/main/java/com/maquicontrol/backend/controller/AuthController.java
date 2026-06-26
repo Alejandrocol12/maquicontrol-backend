@@ -153,22 +153,64 @@ public class AuthController {
         headers.set("api-key", brevoApiKey);
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        String texto =
-            "Hola " + nombre + ",\n\n" +
-            "Tu código de verificación para cambiar la contraseña es:\n\n" +
-            "        " + codigo + "\n\n" +
-            "Este código expira en 15 minutos.\n" +
-            "Si no solicitaste este cambio, ignora este mensaje.\n\n" +
-            "— MaquiControl";
-
         Map<String, Object> payload = new HashMap<>();
         payload.put("sender", Map.of("name", "MaquiControl", "email", brevoSenderEmail));
         payload.put("to", List.of(Map.of("email", to)));
         payload.put("subject", "MaquiControl — Código para cambiar contraseña");
-        payload.put("textContent", texto);
+        payload.put("htmlContent", buildEmailRecuperacion(nombre, codigo));
 
         restTemplate.postForEntity("https://api.brevo.com/v3/smtp/email",
             new HttpEntity<>(payload, headers), String.class);
+    }
+
+    private String buildEmailRecuperacion(String nombre, String codigo) {
+        return "<!DOCTYPE html><html lang='es'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'></head>" +
+        "<body style='margin:0;padding:0;background:#f0f4f8;font-family:Arial,Helvetica,sans-serif;'>" +
+        "<table width='100%' cellpadding='0' cellspacing='0' style='background:#f0f4f8;padding:32px 16px;'><tr><td align='center'>" +
+        "<table width='600' cellpadding='0' cellspacing='0' style='max-width:600px;width:100%;'>" +
+
+        // HEADER
+        "<tr><td style='background:linear-gradient(135deg,#0d1b2a 0%,#10263c 100%);border-radius:16px 16px 0 0;padding:32px 40px;text-align:center;'>" +
+        "<div style='font-size:32px;font-weight:900;letter-spacing:-1px;line-height:1;'>" +
+        "<span style='color:#f5a623;'>Maqui</span><span style='color:#fff;'>Control</span></div>" +
+        "</td></tr>" +
+
+        // BODY
+        "<tr><td style='background:#fff;padding:40px 40px 36px;text-align:center;'>" +
+        "<div style='width:64px;height:64px;background:#fff8e7;border:2px solid #f5e0a0;border-radius:50%;margin:0 auto 20px;font-size:28px;line-height:64px;text-align:center;'>&#128272;</div>" +
+        "<h1 style='margin:0 0 10px;font-size:22px;color:#0d1b2a;font-weight:800;'>Recuperar contraseña</h1>" +
+        "<p style='margin:0 0 28px;color:#6b7a8d;font-size:14px;line-height:1.6;max-width:400px;margin-left:auto;margin-right:auto;'>" +
+        "Hola <strong>" + nombre + "</strong>, usa este código para cambiar tu contraseña. Expira en <strong>15 minutos</strong>.</p>" +
+
+        // CÓDIGO
+        "<table cellpadding='0' cellspacing='0' style='margin:0 auto 28px;'><tr>" +
+        "<td style='background:linear-gradient(135deg,#0d1b2a,#10263c);border-radius:14px;padding:24px 48px;text-align:center;'>" +
+        "<div style='font-size:11px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;'>Código de verificación</div>" +
+        "<div style='font-size:42px;font-weight:900;color:#f5a623;letter-spacing:10px;font-family:Georgia,monospace;'>" + codigo + "</div>" +
+        "<div style='font-size:11px;color:rgba(255,255,255,0.35);margin-top:10px;'>Válido por 15 minutos</div>" +
+        "</td></tr></table>" +
+
+        // INSTRUCCIONES
+        "<div style='background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px 20px;text-align:left;margin-bottom:20px;'>" +
+        "<div style='font-size:12px;font-weight:700;color:#0d1b2a;margin-bottom:8px;'>&#10067; ¿Cómo usarlo?</div>" +
+        "<div style='font-size:12px;color:#6b7a8d;line-height:1.8;'>" +
+        "1. Inicia sesión con tu correo y contraseña actual.<br>" +
+        "2. Ve a <strong>Perfil &rarr; Cambiar contraseña</strong>.<br>" +
+        "3. Ingresa este código y escribe tu nueva contraseña.</div></div>" +
+
+        // ALERTA
+        "<div style='background:#fdf3f3;border:1px solid #f5c6c6;border-radius:10px;padding:14px 18px;text-align:left;'>" +
+        "<div style='font-size:12px;color:#c0392b;line-height:1.6;'>&#128274; <strong>Si no solicitaste este cambio</strong>, ignora este correo. " +
+        "Tu contraseña actual seguirá siendo la misma.</div></div>" +
+        "</td></tr>" +
+
+        // FOOTER
+        "<tr><td style='background:#f8fafc;border-radius:0 0 16px 16px;padding:20px 40px;text-align:center;border-top:1px solid #e2e8f0;'>" +
+        "<div style='font-size:14px;font-weight:800;color:#0d1b2a;margin-bottom:4px;'><span style='color:#f5a623;'>Maqui</span>Control</div>" +
+        "<p style='margin:4px 0 0;color:#9aa5b4;font-size:11px;'>Recibiste este correo porque solicitaste cambiar tu contraseña.</p>" +
+        "</td></tr>" +
+
+        "</table></td></tr></table></body></html>";
     }
 
     private Map<String, Object> buildResponse(Usuario u) {
