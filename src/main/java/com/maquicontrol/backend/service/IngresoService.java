@@ -12,11 +12,9 @@ import java.util.Optional;
 @Service
 public class IngresoService {
 
-    @Autowired
-    private IngresoRepository ingresoRepository;
-
-    @Autowired
-    private FaenaRepository faenaRepository;
+    @Autowired private IngresoRepository ingresoRepository;
+    @Autowired private FaenaRepository faenaRepository;
+    @Autowired private PusherService pusher;
 
     public List<Ingreso> obtenerTodos(Long userId) {
         return ingresoRepository.findByUsuarioId(userId);
@@ -37,7 +35,9 @@ public class IngresoService {
             faenaRepository.findByUsuarioIdAndMaquinaNombreAndEstado(userId, ingreso.getMaquinaNombre(), "activa")
                 .ifPresent(f -> ingreso.setFaenaId(f.getId()));
         }
-        return ingresoRepository.save(ingreso);
+        Ingreso saved = ingresoRepository.save(ingreso);
+        pusher.emitir(userId, "ingreso.nuevo", saved);
+        return saved;
     }
 
     public Ingreso actualizar(Long id, Ingreso ingresoActualizado) {
@@ -54,6 +54,9 @@ public class IngresoService {
     }
 
     public void eliminar(Long id) {
-        ingresoRepository.deleteById(id);
+        ingresoRepository.findById(id).ifPresent(ing -> {
+            ingresoRepository.deleteById(id);
+            pusher.emitirEliminado(ing.getUsuarioId(), "ingreso.eliminado", id);
+        });
     }
 }

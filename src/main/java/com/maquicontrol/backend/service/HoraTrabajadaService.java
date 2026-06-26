@@ -22,6 +22,7 @@ public class HoraTrabajadaService {
     @Autowired private MaquinaRepository maquinaRepository;
     @Autowired private OperadorRepository operadorRepository;
     @Autowired private FaenaRepository faenaRepository;
+    @Autowired private PusherService pusher;
 
     public List<HoraTrabajada> obtenerTodas(Long userId) {
         return horaRepository.findByUsuarioId(userId);
@@ -69,6 +70,7 @@ public class HoraTrabajadaService {
         }
 
         HoraTrabajada saved = horaRepository.save(hora);
+        pusher.emitir(userId, "trabajo.nuevo", saved);
 
         // Actualizar horómetro de la máquina solo si el nuevo valor es mayor
         maquinaRepository.findByUsuarioId(userId).stream()
@@ -91,6 +93,7 @@ public class HoraTrabajadaService {
             String maqNombre = hora.getMaquinaNombre();
 
             horaRepository.deleteById(id);
+            pusher.emitirEliminado(hora.getUsuarioId(), "trabajo.eliminado", id);
 
             // Recalcular horómetro con el máximo de los registros restantes
             if (maqNombre != null && userId != null) {
