@@ -1,6 +1,7 @@
 package com.maquicontrol.backend.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.maquicontrol.backend.repository.OperadorRepository;
 import com.maquicontrol.backend.repository.UsuarioRepository;
 import com.pusher.rest.Pusher;
@@ -19,10 +20,12 @@ public class PusherService {
     private static final Logger log = LoggerFactory.getLogger(PusherService.class);
 
     private final Pusher pusher;
+    private final ObjectMapper objectMapper = new ObjectMapper()
+        .findAndRegisterModules()
+        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     @Autowired private UsuarioRepository usuarioRepo;
     @Autowired private OperadorRepository operadorRepo;
-    @Autowired private ObjectMapper objectMapper;
 
     public PusherService(
         @Value("${pusher.app-id:}") String appId,
