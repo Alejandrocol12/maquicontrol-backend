@@ -3,6 +3,9 @@ package com.maquicontrol.backend.service;
 import com.maquicontrol.backend.repository.OperadorRepository;
 import com.maquicontrol.backend.repository.UsuarioRepository;
 import com.pusher.rest.Pusher;
+import com.pusher.rest.data.Result;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -11,6 +14,8 @@ import java.util.Map;
 
 @Service
 public class PusherService {
+
+    private static final Logger log = LoggerFactory.getLogger(PusherService.class);
 
     private final Pusher pusher;
 
@@ -27,12 +32,16 @@ public class PusherService {
             pusher = new Pusher(appId, key, secret);
             pusher.setCluster(cluster);
             pusher.setEncrypted(true);
+            log.info("PusherService OK — cluster:{} appId:{}", cluster, appId);
         } else {
             pusher = null;
+            log.warn("PusherService DESACTIVADO — appId='{}' key='{}' secret='{}'",
+                appId.isBlank() ? "VACIO" : "ok",
+                key.isBlank() ? "VACIO" : "ok",
+                secret.isBlank() ? "VACIO" : "ok");
         }
     }
 
-    // Si userId pertenece a un operador, resuelve al userId del admin dueño.
     private Long resolverAdminId(Long userId) {
         if (userId == null) return null;
         return usuarioRepo.findById(userId)
@@ -44,11 +53,18 @@ public class PusherService {
     }
 
     public void emitir(Long userId, String evento, Object datos) {
-        if (pusher == null || userId == null) return;
+        if (pusher == null || userId == null) {
+            log.debug("Pusher skip — pusher={} userId={}", pusher != null ? "ok" : "null", userId);
+            return;
+        }
         Long targetId = resolverAdminId(userId);
         try {
-            pusher.trigger("mc-" + targetId, evento, datos);
-        } catch (Exception ignored) {}
+            Result result = pusher.trigger("mc-" + targetId, evento, datos);
+            log.info("Pusher emitido — canal=mc-{} evento={} http={} msg={}",
+                targetId, evento, result.getHttpStatus(), result.getMessage());
+        } catch (Exception e) {
+            log.error("Pusher error — {}", e.getMessage());
+        }
     }
 
     public void emitirEliminado(Long userId, String evento, Long id) {
