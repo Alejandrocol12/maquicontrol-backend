@@ -14,7 +14,6 @@ public class GastoService {
 
     @Autowired private GastoRepository gastoRepository;
     @Autowired private FaenaRepository faenaRepository;
-    @Autowired private PusherService pusher;
 
     public List<Gasto> obtenerTodos(Long userId) {
         return gastoRepository.findByUsuarioId(userId);
@@ -34,9 +33,7 @@ public class GastoService {
             faenaRepository.findByUsuarioIdAndMaquinaNombreAndEstado(userId, gasto.getMaquinaNombre(), "activa")
                 .ifPresent(f -> gasto.setFaenaId(f.getId()));
         }
-        Gasto saved = gastoRepository.save(gasto);
-        pusher.emitir(userId, "gasto.nuevo", saved);
-        return saved;
+        return gastoRepository.save(gasto);
     }
 
     public Gasto actualizar(Long id, Gasto gastoActualizado) {
@@ -51,10 +48,7 @@ public class GastoService {
     }
 
     public void eliminar(Long id) {
-        gastoRepository.findById(id).ifPresent(g -> {
-            gastoRepository.deleteById(id);
-            pusher.emitirEliminado(g.getUsuarioId(), "gasto.eliminado", id);
-        });
+        gastoRepository.deleteById(id);
     }
 
     public void guardarFactura(Long gastoId, String nombre, byte[] data) {

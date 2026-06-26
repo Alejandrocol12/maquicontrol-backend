@@ -21,7 +21,6 @@ public class CombustibleService {
     @Autowired private GastoRepository gastoRepository;
     @Autowired private FaenaRepository faenaRepository;
     @Autowired private MaquinaRepository maquinaRepository;
-    @Autowired private PusherService pusher;
 
     public List<Combustible> obtenerTodos(Long userId) {
         return combustibleRepository.findByUsuarioId(userId);
@@ -75,9 +74,7 @@ public class CombustibleService {
 
         // Guardar referencia cruzada
         saved.setGastoGeneradoId(gastoSaved.getId());
-        Combustible result = combustibleRepository.save(saved);
-        pusher.emitir(userId, "comb.nuevo", result);
-        return result;
+        return combustibleRepository.save(saved);
     }
 
     @Transactional
@@ -86,7 +83,6 @@ public class CombustibleService {
             if (c.getGastoGeneradoId() != null)
                 gastoRepository.deleteById(c.getGastoGeneradoId());
             combustibleRepository.deleteById(id);
-            pusher.emitirEliminado(c.getUsuarioId(), "comb.eliminado", id);
         });
     }
 }
