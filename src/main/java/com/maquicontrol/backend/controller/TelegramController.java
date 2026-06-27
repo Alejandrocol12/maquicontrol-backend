@@ -388,7 +388,7 @@ public class TelegramController {
         if (botToken == null || botToken.isBlank()) return;
         try {
             ObjectNode body = mapper.createObjectNode();
-            body.put("chat_id", chatId); body.put("text", texto); body.put("parse_mode", "MarkdownV2");
+            body.put("chat_id", chatId); body.put("text", texto); body.put("parse_mode", "Markdown");
             http.send(HttpRequest.newBuilder()
                 .uri(URI.create("https://api.telegram.org/bot" + botToken + "/sendMessage"))
                 .header("Content-Type", "application/json")
