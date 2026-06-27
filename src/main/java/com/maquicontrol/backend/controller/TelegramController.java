@@ -49,6 +49,11 @@ public class TelegramController {
     private static final String BTN_RESUMEN = "📊 Mi resumen";
     private static final String BTN_AYUDA   = "ℹ️ Ayuda";
 
+    // Facturas pendientes cuando la IA no pudo leer el monto
+    // clave: chatId → {data, nombre}
+    private static class FacturaPendiente { byte[] data; String nombre; }
+    private final java.util.concurrent.ConcurrentHashMap<Long, FacturaPendiente> facturasPendientes = new java.util.concurrent.ConcurrentHashMap<>();
+
     // ── Webhook principal ──────────────────────────────────────────
 
     @PostMapping("/webhook")
@@ -83,7 +88,14 @@ public class TelegramController {
                 handleDocumento(chatId, document, operador);
             } else {
                 String lower = text.toLowerCase();
-                if (text.equals(BTN_HORAS)) {
+
+                // Respuesta al monto pendiente cuando la IA no pudo leer la factura
+                FacturaPendiente pendiente = facturasPendientes.get(chatId);
+                if (pendiente != null && !text.equals(BTN_HORAS) && !text.equals(BTN_GASTO)
+                        && !text.equals(BTN_RESUMEN) && !text.equals(BTN_AYUDA)
+                        && !lower.startsWith("/")) {
+                    handleMontoPendiente(chatId, text, operador, pendiente);
+                } else if (text.equals(BTN_HORAS)) {
                     enviarConMenu(chatId, "⚙ *MaquiControl*\n\nEnvíame las horas trabajadas. Ejemplos:\n• _8 horas_\n• _9h CAT 320_\n• _7.5 horas excavadora_\n\nSolo escribe y lo registro automáticamente.");
                 } else if (text.equals(BTN_GASTO)) {
                     enviarConMenu(chatId, "⚙ *MaquiControl*\n\nEnvíame el gasto. Ejemplos:\n• _gasté $85.000 en filtro_\n• _gasto 150000 aceite CAT_\n• _compré repuesto 75000_\n\nO envía directamente la foto o PDF de la factura.");
@@ -344,9 +356,46 @@ public class TelegramController {
                 "─────────────────\n_ID: #" + guardado.getId() + "_");
 
         } catch (Exception e) {
-            System.out.println("[TG] IA factura falló: " + e.getMessage() + " — adjuntando al último gasto");
-            adjuntarFactura(chatId, op, nombre, data);
+            System.out.println("[TG] IA factura falló: " + e.getMessage());
+            FacturaPendiente fp = new FacturaPendiente();
+            fp.data = data; fp.nombre = nombre;
+            facturasPendientes.put(chatId, fp);
+            enviarConMenu(chatId,
+                "⚙ *MaquiControl*\n\nNo pude leer el monto de la factura automáticamente.\n\n" +
+                "¿Cuánto fue el total? Escríbelo y lo registro con la factura adjunta:\n_Ejemplo: 85000_");
         }
+    }
+
+    private void handleMontoPendiente(long chatId, String texto, Operador op, FacturaPendiente fp) {
+        // Extraer monto del texto
+        java.util.regex.Matcher m = java.util.regex.Pattern
+            .compile("\\$?\\s*(\\d{1,3}(?:[.,]\\d{3})*(?:[.,]\\d{1,2})?|\\d+)")
+            .matcher(texto);
+        if (!m.find()) {
+            enviarConMenu(chatId, "⚙ *MaquiControl*\n\nNo entendí el monto. Escríbelo así:\n_85000_ o _$85.000_");
+            return;
+        }
+        double monto;
+        try { monto = Double.parseDouble(m.group(1).replaceAll("[.,](?=\\d{3})", "").replace(',', '.')); }
+        catch (Exception e) { enviarConMenu(chatId, "⚙ *MaquiControl*\n\nNo entendí el monto. Intenta de nuevo."); return; }
+
+        facturasPendientes.remove(chatId);
+
+        Gasto gasto = new Gasto();
+        gasto.setDescripcion("Gasto por factura");
+        gasto.setMonto(monto);
+        gasto.setCategoria("Otros");
+        gasto.setFecha(java.time.LocalDate.now());
+        Gasto guardado = gastoService.guardar(op.getUsuarioId(), gasto);
+        gastoService.guardarFactura(guardado.getId(), fp.nombre, fp.data);
+
+        String montoFmt = "$" + String.format("%,.0f", monto).replace(",", ".");
+        enviarConMenu(chatId,
+            "⚙ *MaquiControl*\n─────────────────\n" +
+            "✅ *Gasto registrado con factura*\n" +
+            "💸 *" + montoFmt + "*\n" +
+            "📎 Factura adjuntada\n" +
+            "─────────────────\n_ID: #" + guardado.getId() + " — puedes editar la descripción desde la app_");
     }
 
     private void adjuntarFactura(long chatId, Operador op, String nombre, byte[] data) {
