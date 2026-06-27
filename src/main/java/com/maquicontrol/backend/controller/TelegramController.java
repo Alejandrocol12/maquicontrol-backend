@@ -8,6 +8,7 @@ import com.maquicontrol.backend.model.*;
 import com.maquicontrol.backend.repository.*;
 import com.maquicontrol.backend.service.GastoService;
 import com.maquicontrol.backend.service.HoraTrabajadaService;
+import com.maquicontrol.backend.service.IngresoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -38,6 +39,7 @@ public class TelegramController {
     @Autowired private GastoRepository gastoRepo;
     @Autowired private HoraTrabajadaService horaService;
     @Autowired private GastoService gastoService;
+    @Autowired private IngresoService ingresoService;
 
     private final ObjectMapper mapper = new ObjectMapper();
     private final HttpClient http = HttpClient.newHttpClient();
@@ -177,15 +179,13 @@ public class TelegramController {
 
         if (maq != null && maq.getValorHoraMaquina() > 0) {
             Ingreso ing = new Ingreso();
-            ing.setUsuarioId(op.getUsuarioId());
             ing.setMaquinaNombre(maq.getNombre());
             ing.setTipoTrabajo("Horas");
             ing.setCantidad(ph.horas);
             ing.setValorUnitario(maq.getValorHoraMaquina());
-            ing.setTotal(ph.horas * maq.getValorHoraMaquina());
             ing.setFecha(LocalDate.now());
             ing.setDescripcion(numFmt(ph.horas) + "h — " + maq.getNombre() + " (Telegram)");
-            ingresoRepo.save(ing);
+            ingresoService.guardar(op.getUsuarioId(), ing);
         }
 
         LocalDate inicioSemana = LocalDate.now().with(DayOfWeek.MONDAY);
