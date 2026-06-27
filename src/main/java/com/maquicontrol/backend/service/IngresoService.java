@@ -3,6 +3,8 @@ package com.maquicontrol.backend.service;
 import com.maquicontrol.backend.model.Ingreso;
 import com.maquicontrol.backend.repository.FaenaRepository;
 import com.maquicontrol.backend.repository.IngresoRepository;
+import com.maquicontrol.backend.repository.OperadorRepository;
+import com.maquicontrol.backend.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +16,18 @@ public class IngresoService {
 
     @Autowired private IngresoRepository ingresoRepository;
     @Autowired private FaenaRepository faenaRepository;
+    @Autowired private UsuarioRepository usuarioRepo;
+    @Autowired private OperadorRepository operadorRepo;
+
+    // Si userId pertenece a un operador, devuelve el userId del admin dueño
+    private Long resolverAdminId(Long userId) {
+        if (userId == null) return null;
+        return usuarioRepo.findById(userId)
+            .filter(u -> u.getOperadorId() != null)
+            .flatMap(u -> operadorRepo.findById(u.getOperadorId()))
+            .map(op -> op.getUsuarioId())
+            .orElse(userId);
+    }
 
     public List<Ingreso> obtenerTodos(Long userId) {
         return ingresoRepository.findByUsuarioId(userId);
@@ -28,10 +42,11 @@ public class IngresoService {
     }
 
     public Ingreso guardar(Long userId, Ingreso ingreso) {
-        ingreso.setUsuarioId(userId);
+        Long adminId = resolverAdminId(userId);
+        ingreso.setUsuarioId(adminId);
         ingreso.setTotal(ingreso.getCantidad() * ingreso.getValorUnitario());
         if (ingreso.getMaquinaNombre() != null && ingreso.getFaenaId() == null) {
-            faenaRepository.findByUsuarioIdAndMaquinaNombreAndEstado(userId, ingreso.getMaquinaNombre(), "activa")
+            faenaRepository.findByUsuarioIdAndMaquinaNombreAndEstado(adminId, ingreso.getMaquinaNombre(), "activa")
                 .ifPresent(f -> ingreso.setFaenaId(f.getId()));
         }
         return ingresoRepository.save(ingreso);

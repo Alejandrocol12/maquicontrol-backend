@@ -6,6 +6,7 @@ import com.maquicontrol.backend.repository.FaenaRepository;
 import com.maquicontrol.backend.repository.HoraTrabajadaRepository;
 import com.maquicontrol.backend.repository.MaquinaRepository;
 import com.maquicontrol.backend.repository.OperadorRepository;
+import com.maquicontrol.backend.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,17 @@ public class HoraTrabajadaService {
     @Autowired private MaquinaRepository maquinaRepository;
     @Autowired private OperadorRepository operadorRepository;
     @Autowired private FaenaRepository faenaRepository;
+    @Autowired private UsuarioRepository usuarioRepo;
+
+    // Si userId pertenece a un operador, devuelve el userId del admin dueño
+    private Long resolverAdminId(Long userId) {
+        if (userId == null) return null;
+        return usuarioRepo.findById(userId)
+            .filter(u -> u.getOperadorId() != null)
+            .flatMap(u -> operadorRepository.findById(u.getOperadorId()))
+            .map(op -> op.getUsuarioId())
+            .orElse(userId);
+    }
 
     public List<HoraTrabajada> obtenerTodas(Long userId) {
         return horaRepository.findByUsuarioId(userId);
@@ -47,18 +59,19 @@ public class HoraTrabajadaService {
 
     @Transactional
     public HoraTrabajada guardar(Long userId, HoraTrabajada hora) {
-        hora.setUsuarioId(userId);
+        Long adminId = resolverAdminId(userId);
+        hora.setUsuarioId(adminId);
         hora.setHorometroFin(hora.getHorometroInicio() + hora.getHoras());
 
         // Auto-asociar a faena activa; si no existe, crea una automáticamente
         if (hora.getFaenaId() == null && hora.getMaquinaNombre() != null) {
             Optional<Faena> faenaOpt = faenaRepository
-                .findByUsuarioIdAndMaquinaNombreAndEstado(userId, hora.getMaquinaNombre(), "activa");
+                .findByUsuarioIdAndMaquinaNombreAndEstado(adminId, hora.getMaquinaNombre(), "activa");
             if (faenaOpt.isPresent()) {
                 hora.setFaenaId(faenaOpt.get().getId());
             } else {
                 Faena nueva = new Faena();
-                nueva.setUsuarioId(userId);
+                nueva.setUsuarioId(adminId);
                 nueva.setMaquinaNombre(hora.getMaquinaNombre());
                 nueva.setNombreObra("Periodo auto — " + hora.getMaquinaNombre());
                 nueva.setEstado("activa");
@@ -71,7 +84,7 @@ public class HoraTrabajadaService {
         HoraTrabajada saved = horaRepository.save(hora);
 
         // Actualizar horómetro de la máquina solo si el nuevo valor es mayor
-        maquinaRepository.findByUsuarioId(userId).stream()
+        maquinaRepository.findByUsuarioId(adminId).stream()
             .filter(m -> m.getNombre().equals(hora.getMaquinaNombre()))
             .findFirst()
             .ifPresent(m -> {
