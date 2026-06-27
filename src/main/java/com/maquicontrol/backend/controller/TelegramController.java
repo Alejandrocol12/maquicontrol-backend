@@ -245,8 +245,8 @@ public class TelegramController {
         try {
             JsonNode foto = photos.get(photos.size() - 1);
             byte[] data = descargarArchivo(foto.path("file_id").asText());
-            if (data == null) { enviar(chatId, "❌ No pude descargar la imagen\\."); return; }
-            adjuntarFactura(chatId, op, "tg_foto_" + System.currentTimeMillis() + ".jpg", data);
+            if (data == null) { enviar(chatId, "❌ No pude descargar la imagen."); return; }
+            leerYRegistrarFactura(chatId, op, data, "image/jpeg", "tg_foto_" + System.currentTimeMillis() + ".jpg");
         } catch (Exception e) {
             System.out.println("[TG] Error foto: " + e.getMessage());
         }
@@ -255,26 +255,108 @@ public class TelegramController {
     private void handleDocumento(long chatId, JsonNode document, Operador op) {
         String mime = document.path("mime_type").asText("");
         if (!mime.equals("application/pdf") && !mime.startsWith("image/")) {
-            enviar(chatId, "⚠️ Solo acepto fotos o PDFs como facturas\\."); return;
+            enviar(chatId, "⚠️ Solo acepto fotos o PDFs como facturas."); return;
         }
         try {
             byte[] data = descargarArchivo(document.path("file_id").asText());
-            if (data == null) { enviar(chatId, "❌ No pude descargar el archivo\\."); return; }
+            if (data == null) { enviar(chatId, "❌ No pude descargar el archivo."); return; }
             String nombre = document.path("file_name").asText("factura_tg_" + System.currentTimeMillis() + ".pdf");
-            adjuntarFactura(chatId, op, nombre, data);
+            leerYRegistrarFactura(chatId, op, data, mime, nombre);
         } catch (Exception e) {
             System.out.println("[TG] Error documento: " + e.getMessage());
+        }
+    }
+
+    private void leerYRegistrarFactura(long chatId, Operador op, byte[] data, String mediaType, String nombre) {
+        String apiKey = System.getenv("ANTHROPIC_API_KEY");
+        if (apiKey == null || apiKey.isBlank()) {
+            adjuntarFactura(chatId, op, nombre, data);
+            return;
+        }
+        try {
+            enviar(chatId, "⚙ *MaquiControl*\nAnalizando factura con IA...");
+
+            String base64 = java.util.Base64.getEncoder().encodeToString(data);
+            boolean esPdf = "application/pdf".equals(mediaType);
+
+            ObjectNode bloque = mapper.createObjectNode();
+            bloque.put("type", esPdf ? "document" : "image");
+            ObjectNode src = mapper.createObjectNode();
+            src.put("type", "base64"); src.put("media_type", mediaType); src.put("data", base64);
+            bloque.set("source", src);
+
+            ObjectNode textBlock = mapper.createObjectNode();
+            textBlock.put("type", "text");
+            textBlock.put("text",
+                "Eres un asistente experto en facturas colombianas de taller y proveedores. " +
+                "Analiza este documento y extrae los datos. " +
+                "Responde ÚNICAMENTE con JSON: {\"descripcion\":\"descripción breve\",\"monto\":150000,\"categoria\":\"Repuestos\",\"fecha\":\"2024-01-15\"}. " +
+                "categoria debe ser una de: Repuestos, Lubricantes, Combustible, Reparación, Otros. " +
+                "monto es número entero sin puntos ni símbolos. fecha en formato YYYY-MM-DD.");
+
+            ArrayNode content = mapper.createArrayNode(); content.add(bloque); content.add(textBlock);
+            ObjectNode msg = mapper.createObjectNode(); msg.put("role", "user"); msg.set("content", content);
+            ArrayNode msgs = mapper.createArrayNode(); msgs.add(msg);
+            ObjectNode body = mapper.createObjectNode();
+            body.put("model", "claude-haiku-4-5-20251001"); body.put("max_tokens", 300); body.set("messages", msgs);
+
+            HttpResponse<String> res = http.send(HttpRequest.newBuilder()
+                .uri(URI.create("https://api.anthropic.com/v1/messages"))
+                .header("x-api-key", apiKey).header("anthropic-version", "2023-06-01").header("content-type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(body))).build(),
+                HttpResponse.BodyHandlers.ofString());
+
+            String text = "";
+            for (JsonNode b : mapper.readTree(res.body()).path("content"))
+                if ("text".equals(b.path("type").asText())) { text = b.path("text").asText().trim(); break; }
+
+            int ini = text.indexOf('{'), fin = text.lastIndexOf('}');
+            if (ini < 0 || fin <= ini) throw new RuntimeException("Sin JSON");
+            JsonNode json = mapper.readTree(text.substring(ini, fin + 1));
+
+            double monto = json.path("monto").asDouble(0);
+            if (monto <= 0) throw new RuntimeException("Monto no detectado");
+
+            String descripcion = json.path("descripcion").asText("Gasto por factura");
+            String categoria   = json.path("categoria").asText("Otros");
+            String fechaStr    = json.path("fecha").asText(null);
+            LocalDate fecha = LocalDate.now();
+            if (fechaStr != null && !fechaStr.isBlank()) {
+                try { fecha = LocalDate.parse(fechaStr); } catch (Exception ignored) {}
+            }
+
+            Gasto gasto = new Gasto();
+            gasto.setDescripcion(descripcion);
+            gasto.setMonto(monto);
+            gasto.setCategoria(categoria);
+            gasto.setFecha(fecha);
+            Gasto guardado = gastoService.guardar(op.getUsuarioId(), gasto);
+            gastoService.guardarFactura(guardado.getId(), nombre, data);
+
+            String montoFmt = "$" + String.format("%,.0f", monto).replace(",", ".");
+            enviar(chatId,
+                "⚙ *MaquiControl*\n─────────────────\n" +
+                "✅ *Factura leída — gasto registrado*\n" +
+                "💸 *" + montoFmt + "*\n" +
+                "📝 " + descripcion + "\n" +
+                "🏷 " + categoria + "\n" +
+                "📎 Factura adjuntada\n" +
+                "─────────────────\n_ID: #" + guardado.getId() + "_");
+
+        } catch (Exception e) {
+            System.out.println("[TG] IA factura falló: " + e.getMessage() + " — adjuntando al último gasto");
+            adjuntarFactura(chatId, op, nombre, data);
         }
     }
 
     private void adjuntarFactura(long chatId, Operador op, String nombre, byte[] data) {
         List<Gasto> gastos = gastoRepo.findByUsuarioId(op.getUsuarioId());
         if (gastos.isEmpty()) {
-            enviar(chatId, "⚠️ Registra primero un gasto y luego envía la factura\\."); return;
+            enviar(chatId, "⚠️ Registra primero un gasto y luego envía la factura."); return;
         }
         Gasto ultimo = gastos.stream().max(Comparator.comparingLong(Gasto::getId)).orElseThrow();
         gastoService.guardarFactura(ultimo.getId(), nombre, data);
-        enviar(chatId, "✅ *Factura guardada* para el gasto *\\#" + ultimo.getId() + "*\n📝 " + (ultimo.getDescripcion() != null ? ultimo.getDescripcion() : "Sin descripción"));
+        enviar(chatId, "✅ *Factura adjuntada* al gasto *#" + ultimo.getId() + "*\n📝 " + (ultimo.getDescripcion() != null ? ultimo.getDescripcion() : "Sin descripción"));
     }
 
     // ── Parsing ───────────────────────────────────────────────────
