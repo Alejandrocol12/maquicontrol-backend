@@ -42,6 +42,11 @@ public class TelegramController {
     private final ObjectMapper mapper = new ObjectMapper();
     private final HttpClient http = HttpClient.newHttpClient();
 
+    private static final String BTN_HORAS   = "⏱ Registrar horas";
+    private static final String BTN_GASTO   = "💸 Registrar gasto";
+    private static final String BTN_RESUMEN = "📊 Mi resumen";
+    private static final String BTN_AYUDA   = "ℹ️ Ayuda";
+
     // ── Webhook principal ──────────────────────────────────────────
 
     @PostMapping("/webhook")
@@ -76,10 +81,14 @@ public class TelegramController {
                 handleDocumento(chatId, document, operador);
             } else {
                 String lower = text.toLowerCase();
-                if (lower.equals("/menu") || lower.equals("menu") || lower.equals("hola") || lower.equals("ayuda") || lower.equals("/ayuda")) {
-                    handleMenu(chatId, operador);
-                } else if (lower.startsWith("/resumen") || lower.equals("resumen") || lower.equals("mis horas")) {
+                if (text.equals(BTN_HORAS)) {
+                    enviar(chatId, "⚙ *MaquiControl*\n\nEnvíame las horas trabajadas. Ejemplos:\n• _8 horas_\n• _9h CAT 320_\n• _7.5 horas excavadora_\n\nSolo escribe y lo registro automáticamente.");
+                } else if (text.equals(BTN_GASTO)) {
+                    enviar(chatId, "⚙ *MaquiControl*\n\nEnvíame el gasto. Ejemplos:\n• _gasté $85.000 en filtro_\n• _gasto 150000 aceite CAT_\n• _compré repuesto 75000_\n\nO envía directamente la foto o PDF de la factura.");
+                } else if (text.equals(BTN_RESUMEN) || lower.startsWith("/resumen") || lower.equals("resumen") || lower.equals("mis horas")) {
                     handleResumen(chatId, operador);
+                } else if (text.equals(BTN_AYUDA) || lower.equals("/menu") || lower.equals("menu") || lower.equals("hola") || lower.equals("ayuda") || lower.equals("/ayuda")) {
+                    handleMenu(chatId, operador);
                 } else if (esGasto(lower)) {
                     handleGasto(chatId, text, operador);
                 } else {
@@ -96,7 +105,7 @@ public class TelegramController {
 
     private void handleStart(long chatId, String text, Operador existente) {
         if (existente != null) {
-            enviar(chatId, "✅ Ya estás vinculado como *" + existente.getNombre() + "*.\nEscribe /menu para ver opciones.");
+            enviarConMenu(chatId, "✅ Ya estás vinculado como *" + existente.getNombre() + "*.\n¿Qué deseas hacer?");
             return;
         }
         String[] parts = text.split("\\s+");
@@ -109,20 +118,16 @@ public class TelegramController {
             op.setTelegramChatId(chatId);
             op.setTelegramLinkCode(null);
             operadorRepo.save(op);
-            enviar(chatId, "✅ ¡Hola *" + op.getNombre() + "*!\nTu Telegram está vinculado a MaquiControl.\n\nEscribe /menu o envía tus horas:\n_\"8 horas\"_ • _\"9h CAT 320\"_");
+            enviarConMenu(chatId, "✅ ¡Hola *" + op.getNombre() + "*!\nTu cuenta está vinculada a MaquiControl.\n\nUsa los botones para registrar horas y gastos.");
         }, () -> enviar(chatId, "❌ Código inválido o ya usado.\nPide un nuevo código a tu administrador."));
     }
 
     // ── Menú ──────────────────────────────────────────────────────
 
     private void handleMenu(long chatId, Operador op) {
-        enviar(chatId,
-            "⚙ *MaquiControl* — Menú\n─────────────────\n" +
-            "Hola *" + op.getNombre() + "*, puedes enviarme:\n\n" +
-            "⏱ *Registrar horas*\n_\"8 horas\"_ • _\"9\\.5h CAT 320\"_\n\n" +
-            "💸 *Registrar gasto*\n_\"gasté $85\\.000 en filtro\"_\n_\"gasto 150000 aceite excavadora\"_\n\n" +
-            "📎 *Adjuntar factura*\nEnvía una foto o PDF después de registrar el gasto\n\n" +
-            "📊 /resumen — Ver tus horas de la semana");
+        enviarConMenu(chatId,
+            "⚙ *MaquiControl*\nHola *" + op.getNombre() + "*, ¿qué deseas hacer?\n\n" +
+            "📎 También puedes enviar una foto o PDF de factura en cualquier momento.");
     }
 
     // ── Resumen ───────────────────────────────────────────────────
@@ -382,6 +387,33 @@ public class TelegramController {
                 HttpRequest.newBuilder().uri(URI.create("https://api.telegram.org/file/bot" + botToken + "/" + filePath)).GET().build(),
                 HttpResponse.BodyHandlers.ofByteArray()).body();
         } catch (Exception e) { System.out.println("[TG] Error descarga: " + e.getMessage()); return null; }
+    }
+
+    private void enviarConMenu(long chatId, String texto) {
+        if (botToken == null || botToken.isBlank()) return;
+        try {
+            ObjectNode b1 = mapper.createObjectNode(); b1.put("text", BTN_HORAS);
+            ObjectNode b2 = mapper.createObjectNode(); b2.put("text", BTN_GASTO);
+            ObjectNode b3 = mapper.createObjectNode(); b3.put("text", BTN_RESUMEN);
+            ObjectNode b4 = mapper.createObjectNode(); b4.put("text", BTN_AYUDA);
+            ArrayNode row1 = mapper.createArrayNode(); row1.add(b1); row1.add(b2);
+            ArrayNode row2 = mapper.createArrayNode(); row2.add(b3); row2.add(b4);
+            ArrayNode keyboard = mapper.createArrayNode(); keyboard.add(row1); keyboard.add(row2);
+            ObjectNode markup = mapper.createObjectNode();
+            markup.set("keyboard", keyboard);
+            markup.put("resize_keyboard", true);
+            markup.put("one_time_keyboard", false);
+            markup.put("persistent", true);
+
+            ObjectNode body = mapper.createObjectNode();
+            body.put("chat_id", chatId); body.put("text", texto); body.put("parse_mode", "Markdown");
+            body.set("reply_markup", markup);
+            http.send(HttpRequest.newBuilder()
+                .uri(URI.create("https://api.telegram.org/bot" + botToken + "/sendMessage"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(body))).build(),
+                HttpResponse.BodyHandlers.ofString());
+        } catch (Exception e) { System.out.println("[TG] Error envío con menú: " + e.getMessage()); }
     }
 
     private void enviar(long chatId, String texto) {
