@@ -63,7 +63,7 @@ public class WhatsAppController {
 
         if (operador == null) {
             return twiml(
-                "🏗️ *MaquiControl*\n" +
+                "⚙ *MaquiControl*\n" +
                 "─────────────────\n" +
                 "⚠️ Número no registrado\n" +
                 "Pide a tu administrador que agregue el número *" + tel + "* en tu perfil de operador."
@@ -75,7 +75,7 @@ public class WhatsAppController {
 
         if (parsed.horas <= 0) {
             return twiml(
-                "🏗️ *MaquiControl*\n" +
+                "⚙ *MaquiControl*\n" +
                 "─────────────────\n" +
                 "Hola *" + operador.getNombre() + "* 👋\n" +
                 "No entendí las horas. Escríbeme así:\n\n" +
@@ -155,7 +155,7 @@ public class WhatsAppController {
             .format(DateTimeFormatter.ofPattern("d MMM yyyy", new Locale("es", "CO")));
 
         String respuesta =
-            "🏗️ *MaquiControl*\n" +
+            "⚙ *MaquiControl*\n" +
             "─────────────────\n" +
             "✅ *" + horasTxt + "h registradas*\n" +
             "🚜 " + maquinaTxt + "\n" +
