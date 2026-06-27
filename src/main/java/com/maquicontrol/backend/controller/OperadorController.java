@@ -2,12 +2,15 @@ package com.maquicontrol.backend.controller;
 
 import com.maquicontrol.backend.model.Operador;
 import com.maquicontrol.backend.model.Periodo;
+import com.maquicontrol.backend.repository.OperadorRepository;
 import com.maquicontrol.backend.service.OperadorService;
 import com.maquicontrol.backend.service.PeriodoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,6 +21,7 @@ public class OperadorController {
 
     @Autowired private OperadorService operadorService;
     @Autowired private PeriodoService periodoService;
+    @Autowired private OperadorRepository operadorRepository;
 
     @GetMapping
     public List<Operador> listar(Authentication auth) {
@@ -57,6 +61,39 @@ public class OperadorController {
         }
         operadorService.eliminar(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // --- Telegram ---
+
+    @GetMapping("/{id}/telegram-code")
+    public ResponseEntity<Map<String, Object>> getTelegramCode(@PathVariable Long id, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return operadorService.obtenerPorId(id)
+            .filter(op -> userId.equals(op.getUsuarioId()))
+            .map(op -> {
+                String code = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 6).toUpperCase();
+                op.setTelegramLinkCode(code);
+                operadorRepository.save(op);
+                return ResponseEntity.ok(Map.<String, Object>of(
+                    "code", code,
+                    "vinculado", op.getTelegramChatId() != null
+                ));
+            })
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}/telegram-link")
+    public ResponseEntity<Void> unlinkTelegram(@PathVariable Long id, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return operadorService.obtenerPorId(id)
+            .filter(op -> userId.equals(op.getUsuarioId()))
+            .map(op -> {
+                op.setTelegramChatId(null);
+                op.setTelegramLinkCode(null);
+                operadorRepository.save(op);
+                return ResponseEntity.noContent().<Void>build();
+            })
+            .orElse(ResponseEntity.notFound().build());
     }
 
     // --- Periodos ---

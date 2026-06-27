@@ -10,4 +10,6 @@ import java.util.List;
 public interface OperadorRepository extends JpaRepository<Operador, Long> {
     List<Operador> findByUsuarioId(Long usuarioId);
     List<Operador> findByTelefono(String telefono);
+    java.util.Optional<Operador> findByTelegramChatId(Long chatId);
+    java.util.Optional<Operador> findByTelegramLinkCode(String code);
 }

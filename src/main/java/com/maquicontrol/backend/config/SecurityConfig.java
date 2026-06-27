@@ -52,7 +52,7 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**", "/api/publico/**", "/api/whatsapp/**").permitAll()
+                .requestMatchers("/api/auth/**", "/api/publico/**", "/api/whatsapp/**", "/api/telegram/**").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
