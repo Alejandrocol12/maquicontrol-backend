@@ -76,7 +76,8 @@ public class OperadorController {
                 operadorRepository.save(op);
                 return ResponseEntity.ok(Map.<String, Object>of(
                     "code", code,
-                    "vinculado", op.getTelegramChatId() != null
+                    "vinculado", op.getTelegramChatId() != null,
+                    "deepLink", "https://t.me/MaquiControlBot?start=" + code
                 ));
             })
             .orElse(ResponseEntity.notFound().build());
