@@ -127,6 +127,48 @@ public class AuthController {
             .orElse(ResponseEntity.status(401).body(Map.of("error", "Email o PIN incorrecto")));
     }
 
+    @PostMapping("/solicitar-cambio-email")
+    public ResponseEntity<?> solicitarCambioEmail(@RequestBody Map<String, String> body, Authentication auth) {
+        if (auth == null) return ResponseEntity.status(401).build();
+        String nuevoEmail = body.get("nuevoEmail");
+        if (nuevoEmail == null || !nuevoEmail.contains("@"))
+            return ResponseEntity.badRequest().body(Map.of("error", "Correo no válido"));
+        nuevoEmail = nuevoEmail.trim().toLowerCase();
+        if (usuarioRepo.existsByEmail(nuevoEmail))
+            return ResponseEntity.badRequest().body(Map.of("error", "Ese correo ya está registrado en otra cuenta"));
+        var opt = usuarioRepo.findById((Long) auth.getPrincipal());
+        if (opt.isEmpty()) return ResponseEntity.status(401).build();
+        Usuario u = opt.get();
+        if (u.getEmail().equalsIgnoreCase(nuevoEmail))
+            return ResponseEntity.badRequest().body(Map.of("error", "Ese ya es tu correo actual"));
+        String codigo = codigoService.generar(nuevoEmail);
+        try {
+            enviarEmailCambioCorreo(nuevoEmail, u.getNombre(), codigo);
+            return ResponseEntity.ok(Map.of("ok", true));
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).body(Map.of("error", "No se pudo enviar el correo: " + ex.getMessage()));
+        }
+    }
+
+    @PostMapping("/confirmar-cambio-email")
+    public ResponseEntity<?> confirmarCambioEmail(@RequestBody Map<String, String> body, Authentication auth) {
+        if (auth == null) return ResponseEntity.status(401).build();
+        String nuevoEmail = body.get("nuevoEmail");
+        String codigo = body.get("codigo");
+        if (nuevoEmail == null || codigo == null)
+            return ResponseEntity.badRequest().body(Map.of("error", "Datos incompletos"));
+        nuevoEmail = nuevoEmail.trim().toLowerCase();
+        if (!codigoService.verificar(nuevoEmail, codigo))
+            return ResponseEntity.badRequest().body(Map.of("error", "Código incorrecto o expirado"));
+        if (usuarioRepo.existsByEmail(nuevoEmail))
+            return ResponseEntity.badRequest().body(Map.of("error", "Ese correo ya está registrado en otra cuenta"));
+        return usuarioRepo.findById((Long) auth.getPrincipal()).map(u -> {
+            u.setEmail(nuevoEmail);
+            usuarioRepo.save(u);
+            return ResponseEntity.ok(userDto(u));
+        }).orElse(ResponseEntity.status(401).build());
+    }
+
     @PutMapping("/password")
     public ResponseEntity<?> changePassword(@RequestBody Map<String, String> body, Authentication auth) {
         if (auth == null) return ResponseEntity.status(401).build();
@@ -161,6 +203,54 @@ public class AuthController {
 
         restTemplate.postForEntity("https://api.brevo.com/v3/smtp/email",
             new HttpEntity<>(payload, headers), String.class);
+    }
+
+    private void enviarEmailCambioCorreo(String to, String nombre, String codigo) {
+        var factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(5000);
+        factory.setReadTimeout(10000);
+        var restTemplate = new RestTemplate(factory);
+
+        var headers = new HttpHeaders();
+        headers.set("api-key", brevoApiKey);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("sender", Map.of("name", "MaquiControl", "email", brevoSenderEmail));
+        payload.put("to", List.of(Map.of("email", to)));
+        payload.put("subject", "MaquiControl — Confirma tu nuevo correo");
+        payload.put("htmlContent", buildEmailCambioCorreo(nombre, codigo));
+
+        restTemplate.postForEntity("https://api.brevo.com/v3/smtp/email",
+            new HttpEntity<>(payload, headers), String.class);
+    }
+
+    private String buildEmailCambioCorreo(String nombre, String codigo) {
+        return "<!DOCTYPE html><html lang='es'><head><meta charset='UTF-8'></head>" +
+        "<body style='margin:0;padding:0;background:#f0f4f8;font-family:Arial,Helvetica,sans-serif;'>" +
+        "<table width='100%' cellpadding='0' cellspacing='0' style='background:#f0f4f8;padding:32px 16px;'><tr><td align='center'>" +
+        "<table width='600' cellpadding='0' cellspacing='0' style='max-width:600px;width:100%;'>" +
+        "<tr><td style='background:linear-gradient(135deg,#0d1b2a 0%,#10263c 100%);border-radius:16px 16px 0 0;padding:32px 40px;text-align:center;'>" +
+        "<div style='font-size:32px;font-weight:900;letter-spacing:-1px;'><span style='color:#f5a623;'>Maqui</span><span style='color:#fff;'>Control</span></div>" +
+        "</td></tr>" +
+        "<tr><td style='background:#fff;padding:40px 40px 36px;text-align:center;'>" +
+        "<div style='width:64px;height:64px;background:#e8f5e9;border:2px solid #a5d6a7;border-radius:50%;margin:0 auto 20px;font-size:28px;line-height:64px;'>&#9993;</div>" +
+        "<h1 style='margin:0 0 10px;font-size:22px;color:#0d1b2a;font-weight:800;'>Confirma tu nuevo correo</h1>" +
+        "<p style='margin:0 0 28px;color:#6b7a8d;font-size:14px;line-height:1.6;max-width:400px;margin-left:auto;margin-right:auto;'>" +
+        "Hola <strong>" + nombre + "</strong>, usa este código para confirmar el cambio de correo en tu cuenta. Expira en <strong>15 minutos</strong>.</p>" +
+        "<table cellpadding='0' cellspacing='0' style='margin:0 auto 28px;'><tr>" +
+        "<td style='background:linear-gradient(135deg,#0d1b2a,#10263c);border-radius:14px;padding:24px 48px;text-align:center;'>" +
+        "<div style='font-size:11px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;'>Código de verificación</div>" +
+        "<div style='font-size:42px;font-weight:900;color:#f5a623;letter-spacing:10px;font-family:Georgia,monospace;'>" + codigo + "</div>" +
+        "<div style='font-size:11px;color:rgba(255,255,255,0.35);margin-top:10px;'>Válido por 15 minutos</div>" +
+        "</td></tr></table>" +
+        "<div style='background:#fdf3f3;border:1px solid #f5c6c6;border-radius:10px;padding:14px 18px;text-align:left;'>" +
+        "<div style='font-size:12px;color:#c0392b;line-height:1.6;'>&#128274; <strong>Si no solicitaste este cambio</strong>, ignora este correo. Tu correo actual no será modificado.</div></div>" +
+        "</td></tr>" +
+        "<tr><td style='background:#f8fafc;border-radius:0 0 16px 16px;padding:20px 40px;text-align:center;border-top:1px solid #e2e8f0;'>" +
+        "<div style='font-size:14px;font-weight:800;color:#0d1b2a;'><span style='color:#f5a623;'>Maqui</span>Control</div>" +
+        "</td></tr>" +
+        "</table></td></tr></table></body></html>";
     }
 
     private String buildEmailRecuperacion(String nombre, String codigo) {
