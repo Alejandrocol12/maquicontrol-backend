@@ -105,7 +105,7 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("error", "Código incorrecto o expirado"));
         if (nueva.length() < 6)
             return ResponseEntity.badRequest().body(Map.of("error", "La contraseña debe tener al menos 6 caracteres"));
-        return usuarioRepo.findByEmail(email).map(u -> {
+        return usuarioRepo.findByEmail(email).<ResponseEntity<?>>map(u -> {
             u.setPassword(passwordEncoder.encode(nueva));
             usuarioRepo.save(u);
             return ResponseEntity.ok(Map.of("ok", true));
