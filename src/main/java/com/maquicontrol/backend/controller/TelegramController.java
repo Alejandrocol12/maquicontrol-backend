@@ -256,9 +256,10 @@ public class TelegramController {
     private void handleFoto(long chatId, JsonNode photos, Operador op) {
         try {
             JsonNode foto = photos.get(photos.size() - 1);
-            byte[] data = descargarArchivo(foto.path("file_id").asText());
-            if (data == null) { enviar(chatId, "❌ No pude descargar la imagen."); return; }
-            leerYRegistrarFactura(chatId, op, data, "image/jpeg", "tg_foto_" + System.currentTimeMillis() + ".jpg");
+            byte[] imgData = descargarArchivo(foto.path("file_id").asText());
+            if (imgData == null) { enviarConMenu(chatId, "❌ No pude descargar la imagen."); return; }
+            byte[] pdfData = imagenAPdf(imgData);
+            leerYRegistrarFactura(chatId, op, pdfData, "application/pdf", "factura_" + System.currentTimeMillis() + ".pdf");
         } catch (Exception e) {
             System.out.println("[TG] Error foto: " + e.getMessage());
         }
@@ -506,6 +507,31 @@ public class TelegramController {
         }
         List<Maquina> asignadas = maquinaRepo.findByUsuarioIdAndOperadorNombre(op.getUsuarioId(), op.getNombre());
         return asignadas.isEmpty() ? null : asignadas.get(0);
+    }
+
+    private byte[] imagenAPdf(byte[] imgBytes) throws Exception {
+        try (org.apache.pdfbox.pdmodel.PDDocument doc = new org.apache.pdfbox.pdmodel.PDDocument()) {
+            org.apache.pdfbox.pdmodel.PDPage page = new org.apache.pdfbox.pdmodel.PDPage(
+                org.apache.pdfbox.pdmodel.common.PDRectangle.A4);
+            doc.addPage(page);
+            org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject img =
+                org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject.createFromByteArray(doc, imgBytes, "factura");
+            float pw = page.getMediaBox().getWidth();
+            float ph = page.getMediaBox().getHeight();
+            float margin = 20f;
+            float scale = Math.min((pw - margin * 2) / img.getWidth(), (ph - margin * 2) / img.getHeight());
+            float dw = img.getWidth() * scale;
+            float dh = img.getHeight() * scale;
+            float x = (pw - dw) / 2f;
+            float y = (ph - dh) / 2f;
+            try (org.apache.pdfbox.pdmodel.PDPageContentStream cs =
+                    new org.apache.pdfbox.pdmodel.PDPageContentStream(doc, page)) {
+                cs.drawImage(img, x, y, dw, dh);
+            }
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            doc.save(baos);
+            return baos.toByteArray();
+        }
     }
 
     private byte[] descargarArchivo(String fileId) {
