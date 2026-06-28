@@ -26,6 +26,9 @@ public class AuthController {
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private CodigoVerificacionService codigoService;
 
+    // nuevoEmail pendiente de confirmación por userId
+    private final java.util.concurrent.ConcurrentHashMap<Long, String> emailsPendientes = new java.util.concurrent.ConcurrentHashMap<>();
+
     @Value("${brevo.api-key:}")
     private String brevoApiKey;
 
@@ -127,6 +130,7 @@ public class AuthController {
             .orElse(ResponseEntity.status(401).body(Map.of("error", "Email o PIN incorrecto")));
     }
 
+    // Paso 1: recibe nuevoEmail, envía código al correo VIEJO
     @PostMapping("/solicitar-cambio-email")
     public ResponseEntity<?> solicitarCambioEmail(@RequestBody Map<String, String> body, Authentication auth) {
         if (auth == null) return ResponseEntity.status(401).build();
@@ -141,6 +145,28 @@ public class AuthController {
         Usuario u = opt.get();
         if (u.getEmail().equalsIgnoreCase(nuevoEmail))
             return ResponseEntity.badRequest().body(Map.of("error", "Ese ya es tu correo actual"));
+        emailsPendientes.put(u.getId(), nuevoEmail);
+        String codigo = codigoService.generar(u.getEmail());
+        try {
+            enviarEmailBrevo(u.getEmail(), u.getNombre(), codigo);
+            return ResponseEntity.ok(Map.of("ok", true));
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).body(Map.of("error", "No se pudo enviar el correo: " + ex.getMessage()));
+        }
+    }
+
+    // Paso 2: verifica código del correo viejo, envía código al correo NUEVO
+    @PostMapping("/verificar-email-viejo")
+    public ResponseEntity<?> verificarEmailViejo(@RequestBody Map<String, String> body, Authentication auth) {
+        if (auth == null) return ResponseEntity.status(401).build();
+        var opt = usuarioRepo.findById((Long) auth.getPrincipal());
+        if (opt.isEmpty()) return ResponseEntity.status(401).build();
+        Usuario u = opt.get();
+        if (!codigoService.verificar(u.getEmail(), body.get("codigo")))
+            return ResponseEntity.badRequest().body(Map.of("error", "Código incorrecto o expirado"));
+        String nuevoEmail = emailsPendientes.get(u.getId());
+        if (nuevoEmail == null)
+            return ResponseEntity.badRequest().body(Map.of("error", "Solicitud expirada, vuelve a empezar"));
         String codigo = codigoService.generar(nuevoEmail);
         try {
             enviarEmailCambioCorreo(nuevoEmail, u.getNombre(), codigo);
@@ -150,23 +176,24 @@ public class AuthController {
         }
     }
 
+    // Paso 3: verifica código del correo nuevo y actualiza el email
     @PostMapping("/confirmar-cambio-email")
     public ResponseEntity<?> confirmarCambioEmail(@RequestBody Map<String, String> body, Authentication auth) {
         if (auth == null) return ResponseEntity.status(401).build();
-        String raw = body.get("nuevoEmail");
-        String codigo = body.get("codigo");
-        if (raw == null || codigo == null)
-            return ResponseEntity.badRequest().body(Map.of("error", "Datos incompletos"));
-        String nuevoEmail = raw.trim().toLowerCase();
-        if (!codigoService.verificar(nuevoEmail, codigo))
+        var opt = usuarioRepo.findById((Long) auth.getPrincipal());
+        if (opt.isEmpty()) return ResponseEntity.status(401).build();
+        Usuario u = opt.get();
+        String nuevoEmail = emailsPendientes.get(u.getId());
+        if (nuevoEmail == null)
+            return ResponseEntity.badRequest().body(Map.of("error", "Solicitud expirada, vuelve a empezar"));
+        if (!codigoService.verificar(nuevoEmail, body.get("codigo")))
             return ResponseEntity.badRequest().body(Map.of("error", "Código incorrecto o expirado"));
         if (usuarioRepo.existsByEmail(nuevoEmail))
             return ResponseEntity.badRequest().body(Map.of("error", "Ese correo ya está registrado en otra cuenta"));
-        return usuarioRepo.findById((Long) auth.getPrincipal()).map(u -> {
-            u.setEmail(nuevoEmail);
-            usuarioRepo.save(u);
-            return ResponseEntity.ok(userDto(u));
-        }).orElse(ResponseEntity.status(401).build());
+        u.setEmail(nuevoEmail);
+        usuarioRepo.save(u);
+        emailsPendientes.remove(u.getId());
+        return ResponseEntity.ok(userDto(u));
     }
 
     @PutMapping("/password")
