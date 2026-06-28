@@ -80,6 +80,38 @@ public class AuthController {
         }).orElse(ResponseEntity.status(401).build());
     }
 
+    // Recuperación de contraseña sin sesión (desde login)
+    @PostMapping("/recuperar-password")
+    public ResponseEntity<?> recuperarPassword(@RequestBody Map<String, String> body) {
+        String email = (body.get("email") == null ? "" : body.get("email").trim().toLowerCase());
+        // No revelamos si el correo existe o no por seguridad
+        usuarioRepo.findByEmail(email).ifPresent(u -> {
+            try {
+                String codigo = codigoService.generar(email);
+                enviarEmailBrevo(email, u.getNombre(), codigo);
+            } catch (Exception ignored) {}
+        });
+        return ResponseEntity.ok(Map.of("ok", true));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
+        String email = (body.get("email") == null ? "" : body.get("email").trim().toLowerCase());
+        String codigo = body.get("codigo");
+        String nueva  = body.get("nueva");
+        if (email.isEmpty() || codigo == null || nueva == null)
+            return ResponseEntity.badRequest().body(Map.of("error", "Datos incompletos"));
+        if (!codigoService.verificar(email, codigo))
+            return ResponseEntity.badRequest().body(Map.of("error", "Código incorrecto o expirado"));
+        if (nueva.length() < 6)
+            return ResponseEntity.badRequest().body(Map.of("error", "La contraseña debe tener al menos 6 caracteres"));
+        return usuarioRepo.findByEmail(email).map(u -> {
+            u.setPassword(passwordEncoder.encode(nueva));
+            usuarioRepo.save(u);
+            return ResponseEntity.ok(Map.of("ok", true));
+        }).orElse(ResponseEntity.badRequest().body(Map.of("error", "Correo no encontrado")));
+    }
+
     @PostMapping("/enviar-codigo")
     public ResponseEntity<?> enviarCodigo(Authentication auth) {
         if (auth == null) return ResponseEntity.status(401).build();
