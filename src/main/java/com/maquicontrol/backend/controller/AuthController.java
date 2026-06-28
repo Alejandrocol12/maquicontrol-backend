@@ -130,10 +130,10 @@ public class AuthController {
     @PostMapping("/solicitar-cambio-email")
     public ResponseEntity<?> solicitarCambioEmail(@RequestBody Map<String, String> body, Authentication auth) {
         if (auth == null) return ResponseEntity.status(401).build();
-        String nuevoEmail = body.get("nuevoEmail");
-        if (nuevoEmail == null || !nuevoEmail.contains("@"))
+        String raw = body.get("nuevoEmail");
+        if (raw == null || !raw.contains("@"))
             return ResponseEntity.badRequest().body(Map.of("error", "Correo no válido"));
-        nuevoEmail = nuevoEmail.trim().toLowerCase();
+        String nuevoEmail = raw.trim().toLowerCase();
         if (usuarioRepo.existsByEmail(nuevoEmail))
             return ResponseEntity.badRequest().body(Map.of("error", "Ese correo ya está registrado en otra cuenta"));
         var opt = usuarioRepo.findById((Long) auth.getPrincipal());
@@ -153,11 +153,11 @@ public class AuthController {
     @PostMapping("/confirmar-cambio-email")
     public ResponseEntity<?> confirmarCambioEmail(@RequestBody Map<String, String> body, Authentication auth) {
         if (auth == null) return ResponseEntity.status(401).build();
-        String nuevoEmail = body.get("nuevoEmail");
+        String raw = body.get("nuevoEmail");
         String codigo = body.get("codigo");
-        if (nuevoEmail == null || codigo == null)
+        if (raw == null || codigo == null)
             return ResponseEntity.badRequest().body(Map.of("error", "Datos incompletos"));
-        nuevoEmail = nuevoEmail.trim().toLowerCase();
+        String nuevoEmail = raw.trim().toLowerCase();
         if (!codigoService.verificar(nuevoEmail, codigo))
             return ResponseEntity.badRequest().body(Map.of("error", "Código incorrecto o expirado"));
         if (usuarioRepo.existsByEmail(nuevoEmail))
