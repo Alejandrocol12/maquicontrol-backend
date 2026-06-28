@@ -233,10 +233,8 @@ public class TelegramController {
         gasto.setMonto(pg.monto);
         gasto.setCategoria(pg.categoria);
         gasto.setFecha(LocalDate.now());
-        if (pg.maquinaNombre != null) {
-            Maquina maq = resolverMaquina(pg.maquinaNombre, op);
-            if (maq != null) gasto.setMaquinaNombre(maq.getNombre());
-        }
+        Maquina maqGasto = resolverMaquina(pg.maquinaNombre, op);
+        if (maqGasto != null) gasto.setMaquinaNombre(maqGasto.getNombre());
         Gasto guardado = gastoService.guardar(op.getUsuarioId(), gasto);
 
         String montoFmt = "$" + String.format("%,.0f", pg.monto).replace(",", ".");
@@ -343,6 +341,8 @@ public class TelegramController {
             gasto.setMonto(monto);
             gasto.setCategoria(categoria);
             gasto.setFecha(fecha);
+            Maquina maqFactura = resolverMaquina(null, op);
+            if (maqFactura != null) gasto.setMaquinaNombre(maqFactura.getNombre());
             Gasto guardado = gastoService.guardar(op.getUsuarioId(), gasto);
             gastoService.guardarFactura(guardado.getId(), nombre, data);
 
@@ -387,6 +387,8 @@ public class TelegramController {
         gasto.setMonto(monto);
         gasto.setCategoria("Otros");
         gasto.setFecha(java.time.LocalDate.now());
+        Maquina maqPendiente = resolverMaquina(null, op);
+        if (maqPendiente != null) gasto.setMaquinaNombre(maqPendiente.getNombre());
         Gasto guardado = gastoService.guardar(op.getUsuarioId(), gasto);
         gastoService.guardarFactura(guardado.getId(), fp.nombre, fp.data);
 
