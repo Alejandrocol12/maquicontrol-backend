@@ -1,7 +1,9 @@
 package com.maquicontrol.backend.service;
 
 import com.maquicontrol.backend.model.Periodo;
+import com.maquicontrol.backend.repository.OperadorRepository;
 import com.maquicontrol.backend.repository.PeriodoRepository;
+import com.maquicontrol.backend.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -11,19 +13,29 @@ import java.util.Optional;
 @Service
 public class PeriodoService {
 
-    @Autowired
-    private PeriodoRepository periodoRepository;
+    @Autowired private PeriodoRepository periodoRepository;
+    @Autowired private UsuarioRepository usuarioRepo;
+    @Autowired private OperadorRepository operadorRepo;
+
+    private Long resolverAdminId(Long userId) {
+        if (userId == null) return null;
+        return usuarioRepo.findById(userId)
+            .filter(u -> u.getOperadorId() != null)
+            .flatMap(u -> operadorRepo.findById(u.getOperadorId()))
+            .map(op -> op.getUsuarioId())
+            .orElse(userId);
+    }
 
     public List<Periodo> obtenerPorOperador(Long userId, Long operadorId) {
-        return periodoRepository.findByUsuarioIdAndOperadorId(userId, operadorId);
+        return periodoRepository.findByUsuarioIdAndOperadorId(resolverAdminId(userId), operadorId);
     }
 
     public Optional<Periodo> obtenerActivo(Long userId, Long operadorId) {
-        return periodoRepository.findByUsuarioIdAndOperadorIdAndEstado(userId, operadorId, "activo");
+        return periodoRepository.findByUsuarioIdAndOperadorIdAndEstado(resolverAdminId(userId), operadorId, "activo");
     }
 
     public Periodo crear(Long userId, Long operadorId, Periodo periodo) {
-        periodo.setUsuarioId(userId);
+        periodo.setUsuarioId(resolverAdminId(userId));
         periodo.setOperadorId(operadorId);
         return periodoRepository.save(periodo);
     }

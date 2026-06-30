@@ -44,9 +44,10 @@ public class HoraTrabajadaService {
     }
 
     public List<HoraTrabajada> obtenerPorOperadorId(Long userId, Long operadorId) {
+        Long adminId = resolverAdminId(userId);
         String nombre = operadorRepository.findById(operadorId)
                 .map(o -> o.getNombre()).orElse("");
-        return horaRepository.findByUsuarioIdAndOperadorIdOrNombre(userId, operadorId, nombre);
+        return horaRepository.findByUsuarioIdAndOperadorIdOrNombre(adminId, operadorId, nombre);
     }
 
     public List<HoraTrabajada> obtenerPorOperador(String operadorNombre) {
