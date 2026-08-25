@@ -17,6 +17,7 @@ public interface SalarioRepository extends JpaRepository<Salario, Long> {
     void deleteByOperadorNombre(String operadorNombre);
     void deleteByMaquinaNombre(String maquinaNombre);
     List<Salario> findByFaenaId(Long faenaId);
+    void deleteByFaenaId(Long faenaId);
 
     @Modifying
     @Query("UPDATE Salario s SET s.maquinaNombre = :nuevo WHERE s.usuarioId = :uid AND s.maquinaNombre = :viejo")

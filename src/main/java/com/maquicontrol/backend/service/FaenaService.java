@@ -5,6 +5,7 @@ import com.maquicontrol.backend.model.HoraTrabajada;
 import com.maquicontrol.backend.model.Periodo;
 import com.maquicontrol.backend.model.Salario;
 import com.maquicontrol.backend.repository.FaenaRepository;
+import com.maquicontrol.backend.repository.GastoRepository;
 import com.maquicontrol.backend.repository.HoraTrabajadaRepository;
 import com.maquicontrol.backend.repository.IngresoRepository;
 import com.maquicontrol.backend.repository.MaquinaRepository;
@@ -25,6 +26,7 @@ public class FaenaService {
 
     @Autowired private FaenaRepository faenaRepository;
     @Autowired private IngresoRepository ingresoRepository;
+    @Autowired private GastoRepository gastoRepository;
     @Autowired private MantenimientoRepository mantenimientoRepository;
     @Autowired private HoraTrabajadaRepository horaTrabajadaRepository;
     @Autowired private MaquinaRepository maquinaRepository;
@@ -68,32 +70,42 @@ public class FaenaService {
         double totalIngresos = ingresoRepository.findByFaenaId(id)
             .stream().mapToDouble(i -> i.getTotal()).sum();
 
-        double totalGastos = salarioRepository.findByFaenaId(id)
-            .stream().mapToDouble(s -> s.getTotalNeto()).sum();
+        double totalGastos = gastoRepository.findByFaenaId(id)
+            .stream().mapToDouble(g -> g.getMonto()).sum();
 
         double totalMantenimientos = mantenimientoRepository.findByFaenaId(id)
             .stream().mapToDouble(m -> m.getCosto()).sum();
 
-        // Crear registro Salario del operador
+        // Crear registro Salario del operador (reemplaza cualquier resumen previo, ver crearResumenSalarioOperador)
         crearResumenSalarioOperador(faena, id);
 
         // Cerrar el periodo de pago del operador y abrir uno nuevo en cero
         resetearPeriodoOperador(faena);
-
-        // Recalcular salarios tras crearlos
-        totalGastos = salarioRepository.findByFaenaId(id)
-            .stream().mapToDouble(s -> s.getTotalNeto()).sum();
 
         faena.setEstado("cerrada");
         faena.setFechaFin(LocalDate.now());
         faena.setTotalIngresos(totalIngresos);
         faena.setTotalGastos(totalGastos);
         faena.setTotalMantenimientos(totalMantenimientos);
+        // totalGastos ya incluye los costos de mantenimiento (MantenimientoService crea un Gasto espejo
+        // por cada mantenimiento con costo); totalMantenimientos es solo informativo, no se resta aparte.
         faena.setUtilidadNeta(totalIngresos - totalGastos);
         return faenaRepository.save(faena);
     }
 
+    @Transactional
+    public Faena reabrir(Long id) {
+        Faena faena = faenaRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Faena no encontrada"));
+        faena.setEstado("activa");
+        faena.setFechaFin(null);
+        return faenaRepository.save(faena);
+    }
+
     private void crearResumenSalarioOperador(Faena faena, Long faenaId) {
+        // Evita duplicar el resumen si el periodo se reabrió y se vuelve a cerrar
+        salarioRepository.deleteByFaenaId(faenaId);
+
         var horasFaena = horaTrabajadaRepository.findByFaenaId(faenaId);
         if (horasFaena.isEmpty()) return;
 
