@@ -1,12 +1,15 @@
 package com.maquicontrol.backend.service;
 
 import com.maquicontrol.backend.model.Ingreso;
+import com.maquicontrol.backend.model.Maquina;
 import com.maquicontrol.backend.repository.FaenaRepository;
 import com.maquicontrol.backend.repository.IngresoRepository;
+import com.maquicontrol.backend.repository.MaquinaRepository;
 import com.maquicontrol.backend.repository.OperadorRepository;
 import com.maquicontrol.backend.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -16,6 +19,7 @@ public class IngresoService {
 
     @Autowired private IngresoRepository ingresoRepository;
     @Autowired private FaenaRepository faenaRepository;
+    @Autowired private MaquinaRepository maquinaRepository;
     @Autowired private UsuarioRepository usuarioRepo;
     @Autowired private OperadorRepository operadorRepo;
 
@@ -65,7 +69,16 @@ public class IngresoService {
         return ingresoRepository.save(ingreso);
     }
 
+    @Transactional
     public void eliminar(Long id) {
+        Ingreso ingreso = ingresoRepository.findById(id).orElse(null);
+        if (ingreso != null && "Horas".equals(ingreso.getTipoTrabajo()) && ingreso.getMaquinaNombre() != null) {
+            maquinaRepository.findByUsuarioIdAndNombre(ingreso.getUsuarioId(), ingreso.getMaquinaNombre())
+                .ifPresent(maq -> {
+                    maq.setHorometroActual(maq.getHorometroActual() - ingreso.getCantidad());
+                    maquinaRepository.save(maq);
+                });
+        }
         ingresoRepository.deleteById(id);
     }
 }
