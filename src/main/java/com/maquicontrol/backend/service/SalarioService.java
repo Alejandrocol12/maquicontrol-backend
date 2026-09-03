@@ -18,6 +18,7 @@ public class SalarioService {
     @Autowired private SalarioRepository salarioRepository;
     @Autowired private GastoRepository gastoRepository;
     @Autowired private FaenaRepository faenaRepository;
+    @Autowired private FaenaService faenaService;
 
     public List<Salario> obtenerTodos(Long userId) {
         return salarioRepository.findByUsuarioId(userId);
@@ -55,7 +56,9 @@ public class SalarioService {
         Gasto gastoSaved = gastoRepository.save(gasto);
 
         saved.setGastoGeneradoId(gastoSaved.getId());
-        return salarioRepository.save(saved);
+        Salario resaved = salarioRepository.save(saved);
+        faenaService.recalcularTotalesSiCerrada(resaved.getFaenaId());
+        return resaved;
     }
 
     @Transactional
@@ -83,16 +86,18 @@ public class SalarioService {
                 gastoRepository.save(g);
             });
         }
-        return salarioRepository.save(salario);
+        Salario saved = salarioRepository.save(salario);
+        faenaService.recalcularTotalesSiCerrada(saved.getFaenaId());
+        return saved;
     }
 
     @Transactional
     public void eliminar(Long id) {
-        salarioRepository.findById(id).ifPresent(s -> {
-            if (s.getGastoGeneradoId() != null) {
-                gastoRepository.deleteById(s.getGastoGeneradoId());
-            }
-        });
+        Salario s = salarioRepository.findById(id).orElse(null);
+        if (s != null && s.getGastoGeneradoId() != null) {
+            gastoRepository.deleteById(s.getGastoGeneradoId());
+        }
         salarioRepository.deleteById(id);
+        if (s != null) faenaService.recalcularTotalesSiCerrada(s.getFaenaId());
     }
 }

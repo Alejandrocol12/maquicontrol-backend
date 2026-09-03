@@ -22,6 +22,7 @@ public class IngresoService {
     @Autowired private MaquinaRepository maquinaRepository;
     @Autowired private UsuarioRepository usuarioRepo;
     @Autowired private OperadorRepository operadorRepo;
+    @Autowired private FaenaService faenaService;
 
     // Si userId pertenece a un operador, devuelve el userId del admin dueño
     private Long resolverAdminId(Long userId) {
@@ -45,6 +46,7 @@ public class IngresoService {
         return ingresoRepository.findByUsuarioIdAndMaquinaNombre(userId, maquinaNombre);
     }
 
+    @Transactional
     public Ingreso guardar(Long userId, Ingreso ingreso) {
         Long adminId = resolverAdminId(userId);
         ingreso.setUsuarioId(adminId);
@@ -53,9 +55,12 @@ public class IngresoService {
             faenaRepository.findByUsuarioIdAndMaquinaNombreAndEstado(adminId, ingreso.getMaquinaNombre(), "activa")
                 .ifPresent(f -> ingreso.setFaenaId(f.getId()));
         }
-        return ingresoRepository.save(ingreso);
+        Ingreso saved = ingresoRepository.save(ingreso);
+        faenaService.recalcularTotalesSiCerrada(saved.getFaenaId());
+        return saved;
     }
 
+    @Transactional
     public Ingreso actualizar(Long id, Ingreso ingresoActualizado) {
         Ingreso ingreso = ingresoRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Ingreso no encontrado"));
@@ -66,7 +71,9 @@ public class IngresoService {
         ingreso.setTotal(ingresoActualizado.getCantidad() * ingresoActualizado.getValorUnitario());
         ingreso.setFecha(ingresoActualizado.getFecha());
         ingreso.setMaquinaNombre(ingresoActualizado.getMaquinaNombre());
-        return ingresoRepository.save(ingreso);
+        Ingreso saved = ingresoRepository.save(ingreso);
+        faenaService.recalcularTotalesSiCerrada(saved.getFaenaId());
+        return saved;
     }
 
     @Transactional
@@ -80,5 +87,6 @@ public class IngresoService {
                 });
         }
         ingresoRepository.deleteById(id);
+        if (ingreso != null) faenaService.recalcularTotalesSiCerrada(ingreso.getFaenaId());
     }
 }

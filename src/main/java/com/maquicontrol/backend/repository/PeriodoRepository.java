@@ -13,4 +13,6 @@ public interface PeriodoRepository extends JpaRepository<Periodo, Long> {
     Optional<Periodo> findByUsuarioIdAndOperadorIdAndEstado(Long usuarioId, Long operadorId, String estado);
     List<Periodo> findByOperadorId(Long operadorId);
     Optional<Periodo> findByOperadorIdAndEstado(Long operadorId, String estado);
+    Optional<Periodo> findByFaenaIdAndEstado(Long faenaId, String estado);
+    Optional<Periodo> findFirstByOperadorIdAndEstadoOrderByIdDesc(Long operadorId, String estado);
 }

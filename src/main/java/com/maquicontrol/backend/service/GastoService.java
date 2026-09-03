@@ -5,6 +5,7 @@ import com.maquicontrol.backend.repository.FaenaRepository;
 import com.maquicontrol.backend.repository.GastoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -14,6 +15,7 @@ public class GastoService {
 
     @Autowired private GastoRepository gastoRepository;
     @Autowired private FaenaRepository faenaRepository;
+    @Autowired private FaenaService faenaService;
 
     public List<Gasto> obtenerTodos(Long userId) {
         return gastoRepository.findByUsuarioId(userId);
@@ -27,15 +29,19 @@ public class GastoService {
         return gastoRepository.findByUsuarioIdAndMaquinaNombre(userId, maquinaNombre);
     }
 
+    @Transactional
     public Gasto guardar(Long userId, Gasto gasto) {
         gasto.setUsuarioId(userId);
         if (gasto.getMaquinaNombre() != null && gasto.getFaenaId() == null) {
             faenaRepository.findByUsuarioIdAndMaquinaNombreAndEstado(userId, gasto.getMaquinaNombre(), "activa")
                 .ifPresent(f -> gasto.setFaenaId(f.getId()));
         }
-        return gastoRepository.save(gasto);
+        Gasto saved = gastoRepository.save(gasto);
+        faenaService.recalcularTotalesSiCerrada(saved.getFaenaId());
+        return saved;
     }
 
+    @Transactional
     public Gasto actualizar(Long id, Gasto gastoActualizado) {
         Gasto gasto = gastoRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Gasto no encontrado"));
@@ -44,11 +50,16 @@ public class GastoService {
         gasto.setMonto(gastoActualizado.getMonto());
         gasto.setFecha(gastoActualizado.getFecha());
         gasto.setMaquinaNombre(gastoActualizado.getMaquinaNombre());
-        return gastoRepository.save(gasto);
+        Gasto saved = gastoRepository.save(gasto);
+        faenaService.recalcularTotalesSiCerrada(saved.getFaenaId());
+        return saved;
     }
 
+    @Transactional
     public void eliminar(Long id) {
+        Gasto gasto = gastoRepository.findById(id).orElse(null);
         gastoRepository.deleteById(id);
+        if (gasto != null) faenaService.recalcularTotalesSiCerrada(gasto.getFaenaId());
     }
 
     public void guardarFactura(Long gastoId, String nombre, byte[] data) {

@@ -18,6 +18,7 @@ public class MantenimientoService {
     @Autowired private MantenimientoRepository mantenimientoRepository;
     @Autowired private GastoRepository gastoRepository;
     @Autowired private FaenaRepository faenaRepository;
+    @Autowired private FaenaService faenaService;
 
     public List<Mantenimiento> obtenerTodos(Long userId) {
         return mantenimientoRepository.findByUsuarioId(userId);
@@ -56,6 +57,7 @@ public class MantenimientoService {
             saved.setGastoGeneradoId(gastoSaved.getId());
             mantenimientoRepository.save(saved);
         }
+        faenaService.recalcularTotalesSiCerrada(saved.getFaenaId());
         return saved;
     }
 
@@ -88,16 +90,18 @@ public class MantenimientoService {
                 }
             });
         }
-        return mantenimientoRepository.save(m);
+        Mantenimiento saved = mantenimientoRepository.save(m);
+        faenaService.recalcularTotalesSiCerrada(saved.getFaenaId());
+        return saved;
     }
 
     @Transactional
     public void eliminar(Long id) {
-        mantenimientoRepository.findById(id).ifPresent(m -> {
-            if (m.getGastoGeneradoId() != null) {
-                gastoRepository.deleteById(m.getGastoGeneradoId());
-            }
-        });
+        Mantenimiento m = mantenimientoRepository.findById(id).orElse(null);
+        if (m != null && m.getGastoGeneradoId() != null) {
+            gastoRepository.deleteById(m.getGastoGeneradoId());
+        }
         mantenimientoRepository.deleteById(id);
+        if (m != null) faenaService.recalcularTotalesSiCerrada(m.getFaenaId());
     }
 }

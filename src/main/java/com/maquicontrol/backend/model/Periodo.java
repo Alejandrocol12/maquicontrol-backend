@@ -27,6 +27,9 @@ public class Periodo {
 
     private double anticipos = 0;
 
+    // Faena cuyo cierre origino este periodo (para poder deshacer el corte si se reabre la faena)
+    private Long faenaId;
+
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -68,4 +71,7 @@ public class Periodo {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public Long getFaenaId() { return faenaId; }
+    public void setFaenaId(Long faenaId) { this.faenaId = faenaId; }
 }
