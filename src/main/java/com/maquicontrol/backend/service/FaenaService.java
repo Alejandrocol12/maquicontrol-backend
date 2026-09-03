@@ -47,6 +47,11 @@ public class FaenaService {
     }
 
     public Faena crear(Long userId, Faena faena) {
+        if (faena.getMaquinaNombre() != null
+                && faenaRepository.findByUsuarioIdAndMaquinaNombreAndEstado(userId, faena.getMaquinaNombre(), "activa").isPresent()) {
+            throw new IllegalStateException(
+                "Ya hay un periodo activo en la máquina " + faena.getMaquinaNombre() + " — ciérralo antes de abrir uno nuevo.");
+        }
         faena.setUsuarioId(userId);
         faena.setEstado("activa");
         if (faena.getFechaInicio() == null) faena.setFechaInicio(LocalDate.now());
@@ -97,10 +102,38 @@ public class FaenaService {
     public Faena reabrir(Long id) {
         Faena faena = faenaRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Faena no encontrada"));
+        if (hayOtraFaenaActivaEnMaquina(faena)) {
+            throw new IllegalStateException(
+                "Ya hay otro periodo activo en la máquina " + faena.getMaquinaNombre()
+                + " — ciérralo antes de reabrir este, o el operador quedaría con dos periodos de pago activos a la vez.");
+        }
         faena.setEstado("activa");
         faena.setFechaFin(null);
         deshacerCortePeriodoOperador(id);
         return faenaRepository.save(faena);
+    }
+
+    // Deshace solo el corte de nomina que origino el ultimo cierre de esta faena, sin tocar
+    // el estado de la faena en si. Sirve para corregir un corte accidental (por ejemplo si
+    // se cerro una faena mientras el operador seguia con otra activa en la misma maquina,
+    // antes de que existiera esa validacion) sin necesidad de reabrir la faena.
+    @Transactional
+    public void deshacerCorteOperadorPorFaena(Long id) {
+        faenaRepository.findById(id).orElseThrow(() -> new RuntimeException("Faena no encontrada"));
+        deshacerCortePeriodoOperador(id);
+    }
+
+    // Verdadero si existe OTRA faena (distinta de esta) en estado "activa" para la misma
+    // maquina. Se usa para no permitir dos periodos activos simultaneos en una maquina
+    // (rompe el supuesto de "un periodo activo por maquina" que usa el resto de la app,
+    // incluido el corte de nomina del operador) y para no cortarle la nomina al operador
+    // si sigue trabajando en otra faena de la misma maquina.
+    private boolean hayOtraFaenaActivaEnMaquina(Faena faena) {
+        if (faena.getMaquinaNombre() == null) return false;
+        return faenaRepository.findByUsuarioIdAndMaquinaNombreAndEstado(
+                faena.getUsuarioId(), faena.getMaquinaNombre(), "activa")
+            .filter(f -> !f.getId().equals(faena.getId()))
+            .isPresent();
     }
 
     // Recalcula solo los totales guardados de una faena YA CERRADA, sin tocar estado,
@@ -185,6 +218,9 @@ public class FaenaService {
 
     private void resetearPeriodoOperador(Faena faena) {
         if (faena.getMaquinaNombre() == null) return;
+        // Si la maquina sigue teniendo otra faena activa, el operador sigue trabajando:
+        // no se le corta el periodo de pago solo porque esta faena en particular se cerro.
+        if (hayOtraFaenaActivaEnMaquina(faena)) return;
 
         maquinaRepository.findByUsuarioIdAndNombre(faena.getUsuarioId(), faena.getMaquinaNombre())
             .ifPresent(maq -> {

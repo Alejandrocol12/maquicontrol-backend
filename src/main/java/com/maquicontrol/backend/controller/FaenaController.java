@@ -39,9 +39,13 @@ public class FaenaController {
     }
 
     @PostMapping
-    public Faena crear(@RequestBody Faena faena, Authentication auth) {
+    public ResponseEntity<?> crear(@RequestBody Faena faena, Authentication auth) {
         Long userId = (Long) auth.getPrincipal();
-        return faenaService.crear(userId, faena);
+        try {
+            return ResponseEntity.ok(faenaService.crear(userId, faena));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(409).body(java.util.Map.of("error", e.getMessage()));
+        }
     }
 
     @PutMapping("/{id}")
@@ -65,13 +69,28 @@ public class FaenaController {
     }
 
     @PostMapping("/{id}/reabrir")
-    public ResponseEntity<Faena> reabrir(@PathVariable Long id, Authentication auth) {
+    public ResponseEntity<?> reabrir(@PathVariable Long id, Authentication auth) {
         Long userId = (Long) auth.getPrincipal();
         Optional<Faena> existente = faenaService.obtenerPorId(id);
         if (existente.isEmpty() || !userId.equals(existente.get().getUsuarioId())) {
             return ResponseEntity.status(403).build();
         }
-        return ResponseEntity.ok(faenaService.reabrir(id));
+        try {
+            return ResponseEntity.ok(faenaService.reabrir(id));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(409).body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{id}/deshacer-corte-operador")
+    public ResponseEntity<Void> deshacerCorteOperador(@PathVariable Long id, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        Optional<Faena> existente = faenaService.obtenerPorId(id);
+        if (existente.isEmpty() || !userId.equals(existente.get().getUsuarioId())) {
+            return ResponseEntity.status(403).build();
+        }
+        faenaService.deshacerCorteOperadorPorFaena(id);
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")
