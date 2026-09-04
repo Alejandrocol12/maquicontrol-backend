@@ -19,6 +19,10 @@ public class EnlaceCompartido {
     private boolean activo = true;
     private LocalDateTime creadoEn;
 
+    // Si es null, el enlace comparte toda la maquina (todos los periodos).
+    // Si tiene valor, comparte solo ese periodo (faena) en particular.
+    private Long faenaId;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -42,4 +46,7 @@ public class EnlaceCompartido {
 
     public LocalDateTime getCreadoEn() { return creadoEn; }
     public void setCreadoEn(LocalDateTime creadoEn) { this.creadoEn = creadoEn; }
+
+    public Long getFaenaId() { return faenaId; }
+    public void setFaenaId(Long faenaId) { this.faenaId = faenaId; }
 }

@@ -27,18 +27,30 @@ public class EnlaceCompartidoController {
         Long userId = (Long) auth.getPrincipal();
         Long maquinaId = ((Number) body.get("maquinaId")).longValue();
         String nombre = body.getOrDefault("nombre", "Enlace compartido").toString();
+        Long faenaId = body.get("faenaId") != null ? ((Number) body.get("faenaId")).longValue() : null;
 
-        return maquinaRepo.findById(maquinaId).map(m -> {
-            EnlaceCompartido enlace = new EnlaceCompartido();
-            enlace.setToken(UUID.randomUUID().toString().replace("-", ""));
-            enlace.setUsuarioId(userId);
-            enlace.setMaquinaId(maquinaId);
-            enlace.setMaquinaNombre(m.getNombre());
-            enlace.setNombre(nombre);
-            enlace.setActivo(true);
-            enlace.setCreadoEn(LocalDateTime.now());
-            return ResponseEntity.ok(enlaceRepo.save(enlace));
-        }).orElse(ResponseEntity.notFound().build());
+        Optional<Maquina> maquinaOpt = maquinaRepo.findById(maquinaId);
+        if (maquinaOpt.isEmpty()) return ResponseEntity.notFound().build();
+        Maquina m = maquinaOpt.get();
+
+        if (faenaId != null) {
+            Optional<Faena> faenaOpt = faenaRepo.findById(faenaId);
+            boolean valido = faenaOpt.isPresent()
+                && userId.equals(faenaOpt.get().getUsuarioId())
+                && m.getNombre().equals(faenaOpt.get().getMaquinaNombre());
+            if (!valido) return ResponseEntity.badRequest().body(Map.of("error", "Periodo inválido para esta máquina"));
+        }
+
+        EnlaceCompartido enlace = new EnlaceCompartido();
+        enlace.setToken(UUID.randomUUID().toString().replace("-", ""));
+        enlace.setUsuarioId(userId);
+        enlace.setMaquinaId(maquinaId);
+        enlace.setMaquinaNombre(m.getNombre());
+        enlace.setNombre(nombre);
+        enlace.setFaenaId(faenaId);
+        enlace.setActivo(true);
+        enlace.setCreadoEn(LocalDateTime.now());
+        return ResponseEntity.ok(enlaceRepo.save(enlace));
     }
 
     @GetMapping("/api/compartido")
@@ -75,6 +87,9 @@ public class EnlaceCompartidoController {
         List<Faena> faenas = faenaRepo.findByUsuarioIdAndMaquinaNombre(
             enlace.getUsuarioId(), enlace.getMaquinaNombre()
         );
+        if (enlace.getFaenaId() != null) {
+            faenas = faenas.stream().filter(f -> f.getId().equals(enlace.getFaenaId())).collect(Collectors.toList());
+        }
 
         List<Map<String, Object>> faenasDto = faenas.stream()
             .sorted(Comparator.comparing(
@@ -112,6 +127,7 @@ public class EnlaceCompartidoController {
         List<Map<String, Object>> mants = mantenimientoRepo
             .findByUsuarioIdAndMaquinaNombre(enlace.getUsuarioId(), enlace.getMaquinaNombre())
             .stream()
+            .filter(mt -> enlace.getFaenaId() == null || enlace.getFaenaId().equals(mt.getFaenaId()))
             .sorted(Comparator.comparing(
                 mt -> mt.getFecha() != null ? mt.getFecha().toString() : "",
                 Comparator.reverseOrder()
@@ -144,6 +160,7 @@ public class EnlaceCompartidoController {
         List<Map<String, Object>> gastosDto = gastoRepo
             .findByUsuarioIdAndMaquinaNombre(enlace.getUsuarioId(), enlace.getMaquinaNombre())
             .stream()
+            .filter(g -> enlace.getFaenaId() == null || enlace.getFaenaId().equals(g.getFaenaId()))
             .sorted(Comparator.comparing(
                 g -> g.getFecha() != null ? g.getFecha().toString() : "",
                 Comparator.reverseOrder()
@@ -158,8 +175,12 @@ public class EnlaceCompartidoController {
             })
             .collect(Collectors.toList());
 
+        String periodoNombre = enlace.getFaenaId() != null && !faenas.isEmpty()
+            ? faenas.get(0).getNombreObra() : null;
+
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("nombre",         enlace.getNombre());
+        response.put("periodoNombre",  periodoNombre);
         response.put("maquina",        maquinaDto);
         response.put("resumen",        resumen);
         response.put("faenas",         faenasDto);
