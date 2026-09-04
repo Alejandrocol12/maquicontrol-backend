@@ -27,7 +27,10 @@ public class EnlaceCompartidoController {
         Long userId = (Long) auth.getPrincipal();
         Long maquinaId = ((Number) body.get("maquinaId")).longValue();
         String nombre = body.getOrDefault("nombre", "Enlace compartido").toString();
-        Long faenaId = body.get("faenaId") != null ? ((Number) body.get("faenaId")).longValue() : null;
+        Object faenaIdRaw = body.get("faenaId");
+        Long faenaId = faenaIdRaw == null ? null
+            : faenaIdRaw instanceof Number ? ((Number) faenaIdRaw).longValue()
+            : Long.valueOf(faenaIdRaw.toString());
 
         Optional<Maquina> maquinaOpt = maquinaRepo.findById(maquinaId);
         if (maquinaOpt.isEmpty()) return ResponseEntity.notFound().build();
