@@ -48,6 +48,13 @@ public class PeriodoService {
         Periodo p = periodoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Periodo no encontrado"));
         if (datos.getEstado() != null) p.setEstado(datos.getEstado());
+        if (datos.getFechaInicio() != null) {
+            // Si la fecha de inicio realmente cambia, el ancla por horaId ya no aplica --
+            // de lo contrario seguiria contando horas solo desde que se creo el periodo,
+            // ignorando la fecha nueva que se acaba de fijar.
+            if (!datos.getFechaInicio().equals(p.getFechaInicio())) p.setDesdeHoraId(null);
+            p.setFechaInicio(datos.getFechaInicio());
+        }
         if (datos.getFechaFin() != null) p.setFechaFin(datos.getFechaFin());
         if (datos.getHorasTotal() != 0) p.setHorasTotal(datos.getHorasTotal());
         if (datos.getSalarioBruto() != 0) p.setSalarioBruto(datos.getSalarioBruto());
