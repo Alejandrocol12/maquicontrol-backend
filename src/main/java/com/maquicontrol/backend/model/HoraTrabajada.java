@@ -25,6 +25,9 @@ public class HoraTrabajada {
     private LocalDate fecha;
     private Long faenaId;
     private Long gastoGeneradoId;
+    // Ingreso que se creo junto con esta hora (si vino del registro de trabajo de una maquina).
+    // Permite borrar esta hora automaticamente si se borra ese ingreso, y evitar que quede huerfana.
+    private Long ingresoId;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -70,4 +73,7 @@ public class HoraTrabajada {
 
     public Long getGastoGeneradoId() { return gastoGeneradoId; }
     public void setGastoGeneradoId(Long gastoGeneradoId) { this.gastoGeneradoId = gastoGeneradoId; }
+
+    public Long getIngresoId() { return ingresoId; }
+    public void setIngresoId(Long ingresoId) { this.ingresoId = ingresoId; }
 }

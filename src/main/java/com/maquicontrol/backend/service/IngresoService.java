@@ -3,6 +3,7 @@ package com.maquicontrol.backend.service;
 import com.maquicontrol.backend.model.Ingreso;
 import com.maquicontrol.backend.model.Maquina;
 import com.maquicontrol.backend.repository.FaenaRepository;
+import com.maquicontrol.backend.repository.HoraTrabajadaRepository;
 import com.maquicontrol.backend.repository.IngresoRepository;
 import com.maquicontrol.backend.repository.MaquinaRepository;
 import com.maquicontrol.backend.repository.OperadorRepository;
@@ -23,6 +24,7 @@ public class IngresoService {
     @Autowired private UsuarioRepository usuarioRepo;
     @Autowired private OperadorRepository operadorRepo;
     @Autowired private FaenaService faenaService;
+    @Autowired private HoraTrabajadaRepository horaTrabajadaRepository;
 
     // Si userId pertenece a un operador, devuelve el userId del admin dueño
     private Long resolverAdminId(Long userId) {
@@ -86,6 +88,7 @@ public class IngresoService {
                     maquinaRepository.save(maq);
                 });
         }
+        horaTrabajadaRepository.deleteByIngresoId(id);
         ingresoRepository.deleteById(id);
         if (ingreso != null) faenaService.recalcularTotalesSiCerrada(ingreso.getFaenaId());
     }

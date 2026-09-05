@@ -27,6 +27,7 @@ public interface HoraTrabajadaRepository extends JpaRepository<HoraTrabajada, Lo
     List<HoraTrabajada> findByOperadorIdOrNombre(@Param("id") Long id, @Param("nombre") String nombre);
 
     List<HoraTrabajada> findByFaenaId(Long faenaId);
+    void deleteByIngresoId(Long ingresoId);
 
     @Modifying
     @Query("UPDATE HoraTrabajada h SET h.maquinaNombre = :nuevo WHERE h.usuarioId = :uid AND h.maquinaNombre = :viejo")
