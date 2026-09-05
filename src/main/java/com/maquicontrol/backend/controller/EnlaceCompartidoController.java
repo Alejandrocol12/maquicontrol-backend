@@ -178,6 +178,34 @@ public class EnlaceCompartidoController {
             })
             .collect(Collectors.toList());
 
+        List<Ingreso> ingresosFiltrados = ingresoRepo
+            .findByUsuarioIdAndMaquinaNombre(enlace.getUsuarioId(), enlace.getMaquinaNombre())
+            .stream()
+            .filter(i -> enlace.getFaenaId() == null || enlace.getFaenaId().equals(i.getFaenaId()))
+            .collect(Collectors.toList());
+
+        double totalHoras = ingresosFiltrados.stream()
+            .filter(i -> "Horas".equals(i.getTipoTrabajo()))
+            .mapToDouble(Ingreso::getCantidad)
+            .sum();
+        resumen.put("totalHoras", totalHoras);
+
+        List<Map<String, Object>> ingresosDto = ingresosFiltrados.stream()
+            .sorted(Comparator.comparing(
+                i -> i.getFecha() != null ? i.getFecha().toString() : "",
+                Comparator.reverseOrder()
+            ))
+            .map(i -> {
+                Map<String, Object> d = new LinkedHashMap<>();
+                d.put("fecha",        i.getFecha());
+                d.put("descripcion",  i.getDescripcion());
+                d.put("tipoTrabajo",  i.getTipoTrabajo());
+                d.put("cantidad",     i.getCantidad());
+                d.put("total",        i.getTotal());
+                return d;
+            })
+            .collect(Collectors.toList());
+
         String periodoNombre = enlace.getFaenaId() != null && !faenas.isEmpty()
             ? faenas.get(0).getNombreObra() : null;
 
@@ -187,6 +215,7 @@ public class EnlaceCompartidoController {
         response.put("maquina",        maquinaDto);
         response.put("resumen",        resumen);
         response.put("faenas",         faenasDto);
+        response.put("ingresos",       ingresosDto);
         response.put("gastos",         gastosDto);
         response.put("mantenimientos", mants);
 
