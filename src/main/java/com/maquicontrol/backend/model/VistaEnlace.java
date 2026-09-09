@@ -14,6 +14,9 @@ public class VistaEnlace {
     private String token;
     private String nombreVisitante;
     private LocalDateTime fecha;
+    // Id anonimo guardado en el navegador del visitante (localStorage), para actualizar su
+    // fecha de visita en vez de crear una fila nueva cada vez que abre el mismo enlace.
+    private String visitanteId;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -26,4 +29,7 @@ public class VistaEnlace {
 
     public LocalDateTime getFecha() { return fecha; }
     public void setFecha(LocalDateTime fecha) { this.fecha = fecha; }
+
+    public String getVisitanteId() { return visitanteId; }
+    public void setVisitanteId(String visitanteId) { this.visitanteId = visitanteId; }
 }

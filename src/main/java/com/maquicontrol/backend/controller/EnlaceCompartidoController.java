@@ -223,17 +223,27 @@ public class EnlaceCompartidoController {
         return ResponseEntity.ok(response);
     }
 
-    // Publico: registra una visita al enlace (el visitante puede poner su nombre o dejarlo vacio)
+    // Publico: registra una visita al enlace (el visitante puede poner su nombre o dejarlo vacio).
+    // Si ya existe una visita de este mismo visitanteId (guardado en su navegador), se actualiza
+    // esa misma fila con la fecha mas reciente en vez de crear una fila nueva cada vez que entra.
     @PostMapping("/api/publico/{token}/vista")
     public ResponseEntity<?> registrarVista(@PathVariable String token, @RequestBody(required = false) Map<String, Object> body) {
         Optional<EnlaceCompartido> opt = enlaceRepo.findByTokenAndActivoTrue(token);
         if (opt.isEmpty()) return ResponseEntity.notFound().build();
 
         String nombre = body != null && body.get("nombre") != null ? body.get("nombre").toString().trim() : "";
-        VistaEnlace vista = new VistaEnlace();
+        String visitanteId = body != null && body.get("visitanteId") != null ? body.get("visitanteId").toString().trim() : "";
+        String nombreFinal = nombre.isBlank() ? "Visitante anónimo" : nombre;
+
+        VistaEnlace vista = (!visitanteId.isBlank()
+            ? vistaEnlaceRepo.findByTokenAndVisitanteId(token, visitanteId)
+            : Optional.<VistaEnlace>empty()
+        ).orElseGet(VistaEnlace::new);
+
         vista.setToken(token);
-        vista.setNombreVisitante(nombre.isBlank() ? "Visitante anónimo" : nombre);
+        vista.setNombreVisitante(nombreFinal);
         vista.setFecha(LocalDateTime.now());
+        if (!visitanteId.isBlank()) vista.setVisitanteId(visitanteId);
         vistaEnlaceRepo.save(vista);
         return ResponseEntity.noContent().build();
     }
