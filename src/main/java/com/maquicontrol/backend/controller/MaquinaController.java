@@ -6,10 +6,13 @@ import com.maquicontrol.backend.repository.OperadorRepository;
 import com.maquicontrol.backend.repository.UsuarioRepository;
 import com.maquicontrol.backend.service.MaquinaService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -77,6 +80,38 @@ public class MaquinaController {
     public ResponseEntity<Void> eliminar(@PathVariable Long id, Authentication auth) {
         Long userId = (Long) auth.getPrincipal();
         maquinaService.eliminar(id, userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/foto")
+    public ResponseEntity<Void> subirFoto(@PathVariable Long id,
+                                           @RequestParam("file") MultipartFile file) throws IOException {
+        maquinaService.guardarFoto(id, file.getOriginalFilename(), file.getBytes());
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{id}/foto")
+    public ResponseEntity<byte[]> descargarFoto(@PathVariable Long id) {
+        return maquinaService.obtenerPorId(id)
+            .filter(m -> m.getFoto() != null && m.getFoto().length > 0)
+            .map(m -> ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, detectarTipo(m.getFotoNombre()))
+                .body(m.getFoto()))
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    private static String detectarTipo(String nombre) {
+        if (nombre == null) return "image/jpeg";
+        String n = nombre.toLowerCase();
+        if (n.endsWith(".png"))  return "image/png";
+        if (n.endsWith(".webp")) return "image/webp";
+        if (n.endsWith(".gif"))  return "image/gif";
+        return "image/jpeg";
+    }
+
+    @DeleteMapping("/{id}/foto")
+    public ResponseEntity<Void> eliminarFoto(@PathVariable Long id) {
+        maquinaService.eliminarFoto(id);
         return ResponseEntity.noContent().build();
     }
 }
