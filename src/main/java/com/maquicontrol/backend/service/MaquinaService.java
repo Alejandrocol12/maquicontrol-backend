@@ -71,22 +71,6 @@ public class MaquinaService {
         return saved;
     }
 
-    public void guardarFoto(Long id, String nombre, byte[] data) {
-        Maquina maquina = maquinaRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Máquina no encontrada"));
-        maquina.setFotoNombre(nombre);
-        maquina.setFoto(data);
-        maquinaRepository.save(maquina);
-    }
-
-    public void eliminarFoto(Long id) {
-        Maquina maquina = maquinaRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Máquina no encontrada"));
-        maquina.setFotoNombre(null);
-        maquina.setFoto(null);
-        maquinaRepository.save(maquina);
-    }
-
     @Transactional
     public void eliminar(Long id, Long userId) {
         maquinaRepository.findById(id).ifPresent(maq -> {

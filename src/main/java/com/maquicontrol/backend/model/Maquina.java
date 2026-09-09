@@ -1,6 +1,5 @@
 package com.maquicontrol.backend.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 @Entity
@@ -25,13 +24,6 @@ public class Maquina {
     private Double latitud;
     private Double longitud;
     private String ubicacionNombre;
-
-    @JsonIgnore
-    @Column(name = "foto", columnDefinition = "LONGBLOB")
-    private byte[] foto;
-
-    @Column(name = "foto_nombre")
-    private String fotoNombre;
 
     // Getters y Setters
     public Long getId() { return id; }
@@ -72,12 +64,4 @@ public class Maquina {
 
     public String getUbicacionNombre() { return ubicacionNombre; }
     public void setUbicacionNombre(String ubicacionNombre) { this.ubicacionNombre = ubicacionNombre; }
-
-    public byte[] getFoto() { return foto; }
-    public void setFoto(byte[] foto) { this.foto = foto; }
-
-    public String getFotoNombre() { return fotoNombre; }
-    public void setFotoNombre(String fotoNombre) { this.fotoNombre = fotoNombre; }
-
-    public boolean isTieneFoto() { return foto != null && foto.length > 0; }
 }
