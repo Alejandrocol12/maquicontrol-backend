@@ -20,6 +20,7 @@ public class EnlaceCompartidoController {
     @Autowired private IngresoRepository ingresoRepo;
     @Autowired private GastoRepository gastoRepo;
     @Autowired private MantenimientoRepository mantenimientoRepo;
+    @Autowired private VistaEnlaceRepository vistaEnlaceRepo;
 
     @PostMapping("/api/compartido")
     public ResponseEntity<?> crear(@RequestBody Map<String, Object> body, Authentication auth) {
@@ -220,5 +221,32 @@ public class EnlaceCompartidoController {
         response.put("mantenimientos", mants);
 
         return ResponseEntity.ok(response);
+    }
+
+    // Publico: registra una visita al enlace (el visitante puede poner su nombre o dejarlo vacio)
+    @PostMapping("/api/publico/{token}/vista")
+    public ResponseEntity<?> registrarVista(@PathVariable String token, @RequestBody(required = false) Map<String, Object> body) {
+        Optional<EnlaceCompartido> opt = enlaceRepo.findByTokenAndActivoTrue(token);
+        if (opt.isEmpty()) return ResponseEntity.notFound().build();
+
+        String nombre = body != null && body.get("nombre") != null ? body.get("nombre").toString().trim() : "";
+        VistaEnlace vista = new VistaEnlace();
+        vista.setToken(token);
+        vista.setNombreVisitante(nombre.isBlank() ? "Visitante anónimo" : nombre);
+        vista.setFecha(LocalDateTime.now());
+        vistaEnlaceRepo.save(vista);
+        return ResponseEntity.noContent().build();
+    }
+
+    // Privado: solo el dueño del enlace puede ver quien lo ha visitado
+    @GetMapping("/api/compartido/{token}/vistas")
+    public ResponseEntity<?> verVistas(@PathVariable String token, Authentication auth) {
+        if (auth == null) return ResponseEntity.status(401).build();
+        Long userId = (Long) auth.getPrincipal();
+        Optional<EnlaceCompartido> opt = enlaceRepo.findByToken(token);
+        if (opt.isEmpty() || !userId.equals(opt.get().getUsuarioId())) {
+            return ResponseEntity.status(403).build();
+        }
+        return ResponseEntity.ok(vistaEnlaceRepo.findByTokenOrderByFechaDesc(token));
     }
 }
