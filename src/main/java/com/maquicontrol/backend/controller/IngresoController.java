@@ -51,6 +51,15 @@ public class IngresoController {
         return ResponseEntity.ok(java.util.Map.of("actualizados", actualizados));
     }
 
+    // Igual que arriba, pero para los que no se pudieron resolver exacto: los estima encadenando
+    // el horómetro hacia atrás desde el valor actual de cada máquina.
+    @PostMapping("/backfill-horometro-estimado")
+    public ResponseEntity<?> backfillHorometroEstimado(Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        int actualizados = ingresoService.backfillHorometroEstimado(userId);
+        return ResponseEntity.ok(java.util.Map.of("actualizados", actualizados));
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<Ingreso> actualizar(@PathVariable Long id, @RequestBody Ingreso ingreso, Authentication auth) {
         Long userId = (Long) auth.getPrincipal();

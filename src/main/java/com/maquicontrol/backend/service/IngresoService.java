@@ -12,8 +12,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class IngresoService {
@@ -94,6 +98,46 @@ public class IngresoService {
             ingreso.setHorometroFin(hora.get().getHorometroFin());
             ingresoRepository.save(ingreso);
             actualizados++;
+        }
+        return actualizados;
+    }
+
+    // Estima horometroInicio/horometroFin de los ingresos "Horas" que el backfill exacto no pudo
+    // resolver, encadenando hacia atrás desde el horómetro actual de cada máquina. Los registros
+    // que ya tienen horómetro (exacto) se respetan y se usan como punto de anclaje de la cadena.
+    // Riesgo conocido: si el horómetro de la máquina se editó alguna vez a mano, los estimados
+    // anteriores a esa edición pueden quedar desfasados.
+    @Transactional
+    public int backfillHorometroEstimado(Long userId) {
+        Long adminId = resolverAdminId(userId);
+        List<Ingreso> horas = ingresoRepository.findByUsuarioId(adminId).stream()
+            .filter(i -> "Horas".equals(i.getTipoTrabajo()) && i.getMaquinaNombre() != null)
+            .sorted(Comparator.comparing(Ingreso::getId))
+            .collect(Collectors.toList());
+
+        Map<String, List<Ingreso>> porMaquina = horas.stream()
+            .collect(Collectors.groupingBy(Ingreso::getMaquinaNombre, LinkedHashMap::new, Collectors.toList()));
+
+        int actualizados = 0;
+        for (Map.Entry<String, List<Ingreso>> entrada : porMaquina.entrySet()) {
+            Optional<Maquina> maquinaOpt = maquinaRepository.findByUsuarioIdAndNombre(adminId, entrada.getKey());
+            if (maquinaOpt.isEmpty()) continue;
+            List<Ingreso> lista = entrada.getValue(); // ordenada por id asc = orden real de creación
+            double horometroActual = maquinaOpt.get().getHorometroActual();
+            for (int idx = lista.size() - 1; idx >= 0; idx--) {
+                Ingreso ingreso = lista.get(idx);
+                if (ingreso.getHorometroInicio() != null && ingreso.getHorometroFin() != null) {
+                    horometroActual = ingreso.getHorometroInicio();
+                    continue;
+                }
+                double fin = horometroActual;
+                double inicio = fin - ingreso.getCantidad();
+                ingreso.setHorometroFin(fin);
+                ingreso.setHorometroInicio(inicio);
+                ingresoRepository.save(ingreso);
+                actualizados++;
+                horometroActual = inicio;
+            }
         }
         return actualizados;
     }
