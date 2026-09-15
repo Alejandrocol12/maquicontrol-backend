@@ -22,6 +22,9 @@ public class Ingreso {
     private String maquinaNombre;
     private Long faenaId;
 
+    private Double horometroInicio;
+    private Double horometroFin;
+
     // Getters y Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -52,4 +55,10 @@ public class Ingreso {
 
     public Long getFaenaId() { return faenaId; }
     public void setFaenaId(Long faenaId) { this.faenaId = faenaId; }
+
+    public Double getHorometroInicio() { return horometroInicio; }
+    public void setHorometroInicio(Double horometroInicio) { this.horometroInicio = horometroInicio; }
+
+    public Double getHorometroFin() { return horometroFin; }
+    public void setHorometroFin(Double horometroFin) { this.horometroFin = horometroFin; }
 }
