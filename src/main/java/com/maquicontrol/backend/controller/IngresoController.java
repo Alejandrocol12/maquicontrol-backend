@@ -42,6 +42,15 @@ public class IngresoController {
         return ingresoService.guardar(userId, ingreso);
     }
 
+    // Rellena horometroInicio/horometroFin de ingresos viejos, solo cuando el dato exacto
+    // ya existe guardado en un HoraTrabajada vinculado. No estima ni adivina nada.
+    @PostMapping("/backfill-horometro")
+    public ResponseEntity<?> backfillHorometro(Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        int actualizados = ingresoService.backfillHorometroExacto(userId);
+        return ResponseEntity.ok(java.util.Map.of("actualizados", actualizados));
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<Ingreso> actualizar(@PathVariable Long id, @RequestBody Ingreso ingreso, Authentication auth) {
         Long userId = (Long) auth.getPrincipal();

@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface HoraTrabajadaRepository extends JpaRepository<HoraTrabajada, Long> {
@@ -28,6 +29,7 @@ public interface HoraTrabajadaRepository extends JpaRepository<HoraTrabajada, Lo
 
     List<HoraTrabajada> findByFaenaId(Long faenaId);
     void deleteByIngresoId(Long ingresoId);
+    Optional<HoraTrabajada> findByIngresoId(Long ingresoId);
 
     @Modifying
     @Query("UPDATE HoraTrabajada h SET h.maquinaNombre = :nuevo WHERE h.usuarioId = :uid AND h.maquinaNombre = :viejo")

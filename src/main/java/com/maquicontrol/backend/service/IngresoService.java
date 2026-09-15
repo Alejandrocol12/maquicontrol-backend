@@ -78,6 +78,26 @@ public class IngresoService {
         return saved;
     }
 
+    // Rellena horometroInicio/horometroFin de ingresos viejos tipo "Horas" que quedaron sin ese
+    // dato, únicamente cuando existe un HoraTrabajada vinculado (ingresoId) con el valor exacto ya
+    // guardado -- no se estima ni se adivina nada.
+    @Transactional
+    public int backfillHorometroExacto(Long userId) {
+        Long adminId = resolverAdminId(userId);
+        int actualizados = 0;
+        for (Ingreso ingreso : ingresoRepository.findByUsuarioId(adminId)) {
+            if (!"Horas".equals(ingreso.getTipoTrabajo())) continue;
+            if (ingreso.getHorometroInicio() != null && ingreso.getHorometroFin() != null) continue;
+            Optional<com.maquicontrol.backend.model.HoraTrabajada> hora = horaTrabajadaRepository.findByIngresoId(ingreso.getId());
+            if (hora.isEmpty()) continue;
+            ingreso.setHorometroInicio(hora.get().getHorometroInicio());
+            ingreso.setHorometroFin(hora.get().getHorometroFin());
+            ingresoRepository.save(ingreso);
+            actualizados++;
+        }
+        return actualizados;
+    }
+
     @Transactional
     public void eliminar(Long id) {
         Ingreso ingreso = ingresoRepository.findById(id).orElse(null);
