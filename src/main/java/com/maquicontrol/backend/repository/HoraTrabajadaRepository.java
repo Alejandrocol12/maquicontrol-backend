@@ -34,4 +34,8 @@ public interface HoraTrabajadaRepository extends JpaRepository<HoraTrabajada, Lo
     @Modifying
     @Query("UPDATE HoraTrabajada h SET h.maquinaNombre = :nuevo WHERE h.usuarioId = :uid AND h.maquinaNombre = :viejo")
     void actualizarNombreMaquina(@Param("uid") Long uid, @Param("viejo") String viejo, @Param("nuevo") String nuevo);
+
+    @Modifying
+    @Query("UPDATE HoraTrabajada h SET h.operadorNombre = :nuevo WHERE h.usuarioId = :uid AND h.operadorNombre = :viejo")
+    void actualizarNombreOperador(@Param("uid") Long uid, @Param("viejo") String viejo, @Param("nuevo") String nuevo);
 }

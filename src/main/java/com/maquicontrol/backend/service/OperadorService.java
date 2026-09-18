@@ -2,6 +2,8 @@ package com.maquicontrol.backend.service;
 
 import com.maquicontrol.backend.model.Operador;
 import com.maquicontrol.backend.repository.HoraTrabajadaRepository;
+import com.maquicontrol.backend.repository.MaquinaRepository;
+import com.maquicontrol.backend.repository.NovedadRepository;
 import com.maquicontrol.backend.repository.OperadorRepository;
 import com.maquicontrol.backend.repository.PeriodoRepository;
 import com.maquicontrol.backend.repository.SalarioRepository;
@@ -19,6 +21,8 @@ public class OperadorService {
     @Autowired private PeriodoRepository periodoRepository;
     @Autowired private HoraTrabajadaRepository horaRepository;
     @Autowired private SalarioRepository salarioRepository;
+    @Autowired private MaquinaRepository maquinaRepository;
+    @Autowired private NovedadRepository novedadRepository;
 
     public List<Operador> obtenerTodos(Long userId) {
         return operadorRepository.findByUsuarioId(userId);
@@ -33,16 +37,34 @@ public class OperadorService {
         return operadorRepository.save(operador);
     }
 
+    @Transactional
     public Operador actualizar(Long id, Operador datos) {
         Operador op = operadorRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Operador no encontrado"));
-        op.setNombre(datos.getNombre());
+
+        String nombreViejo = op.getNombre();
+        String nombreNuevo = datos.getNombre();
+
+        op.setNombre(nombreNuevo);
         op.setCedula(datos.getCedula());
         op.setTelefono(datos.getTelefono());
         op.setEmail(datos.getEmail());
         op.setObservaciones(datos.getObservaciones());
         op.setActivo(datos.isActivo());
-        return operadorRepository.save(op);
+        Operador saved = operadorRepository.save(op);
+
+        // Las horas, liquidaciones, máquina asignada y novedades quedan enlazadas al
+        // operador por su nombre (no solo por id) — sin esta cascada, renombrar un
+        // operador los deja huérfanos y parece que se borraron.
+        if (nombreViejo != null && !nombreViejo.equals(nombreNuevo)) {
+            Long userId = op.getUsuarioId();
+            maquinaRepository.actualizarNombreOperador(userId, nombreViejo, nombreNuevo);
+            horaRepository.actualizarNombreOperador(userId, nombreViejo, nombreNuevo);
+            salarioRepository.actualizarNombreOperador(userId, nombreViejo, nombreNuevo);
+            novedadRepository.actualizarNombreOperador(userId, nombreViejo, nombreNuevo);
+        }
+
+        return saved;
     }
 
     @Transactional

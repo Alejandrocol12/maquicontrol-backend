@@ -22,4 +22,8 @@ public interface SalarioRepository extends JpaRepository<Salario, Long> {
     @Modifying
     @Query("UPDATE Salario s SET s.maquinaNombre = :nuevo WHERE s.usuarioId = :uid AND s.maquinaNombre = :viejo")
     void actualizarNombreMaquina(@Param("uid") Long uid, @Param("viejo") String viejo, @Param("nuevo") String nuevo);
+
+    @Modifying
+    @Query("UPDATE Salario s SET s.operadorNombre = :nuevo WHERE s.usuarioId = :uid AND s.operadorNombre = :viejo")
+    void actualizarNombreOperador(@Param("uid") Long uid, @Param("viejo") String viejo, @Param("nuevo") String nuevo);
 }
