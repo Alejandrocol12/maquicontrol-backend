@@ -63,6 +63,25 @@ public class OperadorController {
         return ResponseEntity.noContent().build();
     }
 
+    // --- Reparación de vínculos rotos (renombres hechos antes de la cascada) ---
+
+    @GetMapping("/nombres-huerfanos")
+    public List<String> nombresHuerfanos(Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return operadorService.nombresHuerfanos(userId);
+    }
+
+    @PostMapping("/{id}/reparar-nombre")
+    public ResponseEntity<Void> repararNombre(@PathVariable Long id, @RequestBody Map<String, String> body, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        Optional<Operador> existente = operadorService.obtenerPorId(id);
+        if (existente.isEmpty() || !userId.equals(existente.get().getUsuarioId())) {
+            return ResponseEntity.status(403).build();
+        }
+        operadorService.repararNombre(id, body.get("nombreAnterior"));
+        return ResponseEntity.noContent().build();
+    }
+
     // --- Telegram ---
 
     @GetMapping("/{id}/telegram-code")

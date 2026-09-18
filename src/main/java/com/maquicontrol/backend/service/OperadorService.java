@@ -11,8 +11,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class OperadorService {
@@ -65,6 +68,48 @@ public class OperadorService {
         }
 
         return saved;
+    }
+
+    // Nombres de operador que aparecen en horas/liquidaciones/máquinas/novedades pero
+    // ya no coinciden con ningún operador actual — huella de un renombre hecho antes
+    // de que existiera la cascada en actualizar(), o de un operador ya eliminado.
+    public List<String> nombresHuerfanos(Long userId) {
+        Set<String> actuales = operadorRepository.findByUsuarioId(userId).stream()
+                .map(Operador::getNombre)
+                .filter(n -> n != null && !n.isBlank())
+                .collect(Collectors.toSet());
+
+        Set<String> referenciados = new HashSet<>();
+        maquinaRepository.findByUsuarioId(userId).forEach(m -> {
+            if (m.getOperadorNombre() != null && !m.getOperadorNombre().isBlank()) referenciados.add(m.getOperadorNombre());
+        });
+        horaRepository.findByUsuarioId(userId).forEach(h -> {
+            if (h.getOperadorNombre() != null && !h.getOperadorNombre().isBlank()) referenciados.add(h.getOperadorNombre());
+        });
+        salarioRepository.findByUsuarioId(userId).forEach(s -> {
+            if (s.getOperadorNombre() != null && !s.getOperadorNombre().isBlank()) referenciados.add(s.getOperadorNombre());
+        });
+        novedadRepository.findByUsuarioIdOrderByFechaDesc(userId).forEach(n -> {
+            if (n.getOperadorNombre() != null && !n.getOperadorNombre().isBlank()) referenciados.add(n.getOperadorNombre());
+        });
+
+        referenciados.removeAll(actuales);
+        return new java.util.ArrayList<>(referenciados);
+    }
+
+    // Reconecta manualmente horas/liquidaciones/máquina/novedades que quedaron con un
+    // nombre viejo (de antes de la cascada) hacia el operador actual.
+    @Transactional
+    public void repararNombre(Long id, String nombreAnterior) {
+        Operador op = operadorRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Operador no encontrado"));
+        if (nombreAnterior == null || nombreAnterior.isBlank() || nombreAnterior.equals(op.getNombre())) return;
+
+        Long userId = op.getUsuarioId();
+        maquinaRepository.actualizarNombreOperador(userId, nombreAnterior, op.getNombre());
+        horaRepository.actualizarNombreOperador(userId, nombreAnterior, op.getNombre());
+        salarioRepository.actualizarNombreOperador(userId, nombreAnterior, op.getNombre());
+        novedadRepository.actualizarNombreOperador(userId, nombreAnterior, op.getNombre());
     }
 
     @Transactional
