@@ -54,6 +54,7 @@ public class MaquinaService {
         maquina.setOperadorNombre(maquinaActualizada.getOperadorNombre());
         maquina.setValorHoraOperador(maquinaActualizada.getValorHoraOperador());
         maquina.setValorHoraMaquina(maquinaActualizada.getValorHoraMaquina());
+        maquina.setDiaCorte(maquinaActualizada.getDiaCorte());
         Maquina saved = maquinaRepository.save(maquina);
 
         // #7: si el nombre cambió, cascadear la actualización a todos los registros relacionados

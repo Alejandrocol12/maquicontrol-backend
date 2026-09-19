@@ -25,6 +25,10 @@ public class Maquina {
     private Double longitud;
     private String ubicacionNombre;
 
+    // Día del mes (1-31) en que se corta el pago al operador de esta máquina.
+    // Null = sin configurar (no se muestra la tarjeta de Corte).
+    private Integer diaCorte;
+
     // Getters y Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -64,4 +68,7 @@ public class Maquina {
 
     public String getUbicacionNombre() { return ubicacionNombre; }
     public void setUbicacionNombre(String ubicacionNombre) { this.ubicacionNombre = ubicacionNombre; }
+
+    public Integer getDiaCorte() { return diaCorte; }
+    public void setDiaCorte(Integer diaCorte) { this.diaCorte = diaCorte; }
 }
