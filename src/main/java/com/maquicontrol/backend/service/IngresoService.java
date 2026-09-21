@@ -66,18 +66,55 @@ public class IngresoService {
         return saved;
     }
 
+    // No se permite editar tipoTrabajo ni maquinaNombre -- cambiar de máquina o de tipo movería
+    // el ingreso a otra faena y complicaría la reconciliación de horas/horómetro de abajo.
     @Transactional
     public Ingreso actualizar(Long id, Ingreso ingresoActualizado) {
         Ingreso ingreso = ingresoRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Ingreso no encontrado"));
         ingreso.setDescripcion(ingresoActualizado.getDescripcion());
-        ingreso.setTipoTrabajo(ingresoActualizado.getTipoTrabajo());
         ingreso.setCantidad(ingresoActualizado.getCantidad());
         ingreso.setValorUnitario(ingresoActualizado.getValorUnitario());
         ingreso.setTotal(ingresoActualizado.getCantidad() * ingresoActualizado.getValorUnitario());
         ingreso.setFecha(ingresoActualizado.getFecha());
-        ingreso.setMaquinaNombre(ingresoActualizado.getMaquinaNombre());
+
+        boolean esHoras = "Horas".equals(ingreso.getTipoTrabajo());
+        if (esHoras && ingreso.getHorometroInicio() != null) {
+            // El horómetro de inicio no cambia -- solo el de fin, según las horas corregidas.
+            ingreso.setHorometroFin(ingreso.getHorometroInicio() + ingreso.getCantidad());
+        }
+
         Ingreso saved = ingresoRepository.save(ingreso);
+
+        // Reconciliar la hora trabajada vinculada (si existe) para que el operador no quede
+        // desfasado respecto a este ingreso corregido -- el mismo tipo de desfase que causó
+        // el problema de horas de Geovanni.
+        if (esHoras) {
+            horaTrabajadaRepository.findByIngresoId(id).ifPresent(hora -> {
+                // OJO: no se toca hora.valorHora -- es la tarifa del OPERADOR, independiente
+                // del valorUnitario del ingreso (lo que paga el cliente a la máquina).
+                hora.setHoras(saved.getCantidad());
+                hora.setFecha(saved.getFecha());
+                if (saved.getHorometroInicio() != null) hora.setHorometroInicio(saved.getHorometroInicio());
+                if (saved.getHorometroFin() != null) hora.setHorometroFin(saved.getHorometroFin());
+                horaTrabajadaRepository.save(hora);
+            });
+            if (saved.getMaquinaNombre() != null) {
+                maquinaRepository.findByUsuarioIdAndNombre(saved.getUsuarioId(), saved.getMaquinaNombre())
+                    .ifPresent(maq -> {
+                        // Recalcula como el máximo horómetro entre todas las horas de la máquina --
+                        // más seguro que sumar/restar la diferencia, igual que ya se hace al eliminar.
+                        double maxHoro = horaTrabajadaRepository
+                            .findByUsuarioIdAndMaquinaNombre(saved.getUsuarioId(), saved.getMaquinaNombre())
+                            .stream()
+                            .mapToDouble(com.maquicontrol.backend.model.HoraTrabajada::getHorometroFin)
+                            .max().orElse(maq.getHorometroActual());
+                        maq.setHorometroActual(maxHoro);
+                        maquinaRepository.save(maq);
+                    });
+            }
+        }
+
         faenaService.recalcularTotalesSiCerrada(saved.getFaenaId());
         return saved;
     }
