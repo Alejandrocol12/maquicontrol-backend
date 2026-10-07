@@ -3,8 +3,9 @@ package com.maquicontrol.backend.model;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 
-// Registro puramente informativo de cuánto se le ha pagado a un operador -- no se relaciona
-// con Salarios ni con ningún otro total, es solo una bitácora que lleva el admin.
+// Plata que el admin le entrega a un operador (pagos de corte y adelantos). Cada pago genera
+// un Gasto categoria "Pago operador" enlazado por gastoGeneradoId, para que cuente en los
+// egresos una sola vez: se edita y se borra desde aqui y el gasto se actualiza solo.
 @Entity
 @Table(name = "pagos_operador")
 public class PagoOperador {
@@ -19,6 +20,10 @@ public class PagoOperador {
     private String descripcion;
     private double monto;
     private LocalDate fecha;
+    private Long gastoGeneradoId;
+
+    public Long getGastoGeneradoId() { return gastoGeneradoId; }
+    public void setGastoGeneradoId(Long gastoGeneradoId) { this.gastoGeneradoId = gastoGeneradoId; }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

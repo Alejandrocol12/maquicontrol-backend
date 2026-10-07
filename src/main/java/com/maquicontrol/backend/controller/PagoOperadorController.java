@@ -23,6 +23,17 @@ public class PagoOperadorController {
         return pagoService.obtenerTodos(userId);
     }
 
+    // Pagos anotados antes de que Pago Operador se registrara en Gastos
+    @GetMapping("/sin-gasto")
+    public List<PagoOperador> sinGasto(Authentication auth) {
+        return pagoService.sinGasto((Long) auth.getPrincipal());
+    }
+
+    @PostMapping("/pasar-a-gastos")
+    public java.util.Map<String, Integer> pasarAGastos(Authentication auth) {
+        return java.util.Map.of("pasados", pagoService.pasarAGastos((Long) auth.getPrincipal()));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<PagoOperador> obtenerPorId(@PathVariable Long id) {
         return pagoService.obtenerPorId(id)

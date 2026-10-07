@@ -27,6 +27,12 @@ public class Periodo {
 
     private double anticipos = 0;
 
+    // Fecha desde la que se cuenta el corte en curso cuando el admin la ajusta a mano
+    private String corteDesde;
+
+    public String getCorteDesde() { return corteDesde; }
+    public void setCorteDesde(String corteDesde) { this.corteDesde = corteDesde; }
+
     // Faena cuyo cierre origino este periodo (para poder deshacer el corte si se reabre la faena)
     private Long faenaId;
 

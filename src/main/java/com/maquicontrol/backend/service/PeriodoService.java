@@ -62,6 +62,12 @@ public class PeriodoService {
         if (datos.getNota() != null) p.setNota(datos.getNota());
         if (datos.getDesdeHoraId() != null) p.setDesdeHoraId(datos.getDesdeHoraId());
         p.setAnticipos(datos.getAnticipos());
+        // "auto" = volver a la fecha automatica (dia siguiente al ultimo corte). No se usa la
+        // cadena vacia porque puede llegar convertida en null, que aqui significa "no tocar".
+        if (datos.getCorteDesde() != null) {
+            String cd = datos.getCorteDesde().trim();
+            p.setCorteDesde(cd.isEmpty() || "auto".equalsIgnoreCase(cd) ? null : cd);
+        }
         return periodoRepository.save(p);
     }
 }
