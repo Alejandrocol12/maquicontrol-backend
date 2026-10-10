@@ -25,6 +25,10 @@ public class Maquina {
     private Double longitud;
     private String ubicacionNombre;
 
+    // Socios y reparto: JSON con socios, porcentajes, quien recibe los cobros, entregas y gastos pagados de bolsillo
+    @Column(columnDefinition = "TEXT")
+    private String sociosJson;
+
     // Getters y Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -64,4 +68,7 @@ public class Maquina {
 
     public String getUbicacionNombre() { return ubicacionNombre; }
     public void setUbicacionNombre(String ubicacionNombre) { this.ubicacionNombre = ubicacionNombre; }
+
+    public String getSociosJson() { return sociosJson; }
+    public void setSociosJson(String sociosJson) { this.sociosJson = sociosJson; }
 }
