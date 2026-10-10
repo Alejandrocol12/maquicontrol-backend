@@ -63,23 +63,6 @@ public class MaquinaController {
         return ResponseEntity.ok(maquinaService.actualizar(id, maquina));
     }
 
-    @PutMapping("/{id}/socios")
-    public ResponseEntity<Maquina> guardarSocios(@PathVariable Long id, @RequestBody Map<String, Object> body, Authentication auth) {
-        Long userId = (Long) auth.getPrincipal();
-        Optional<Maquina> existente = maquinaService.obtenerPorId(id);
-        if (existente.isEmpty() || !userId.equals(existente.get().getUsuarioId())) {
-            return ResponseEntity.status(403).build();
-        }
-        Maquina m = existente.get();
-        Object json = body.get("sociosJson");
-        String texto = json == null ? null : json.toString();
-        if (texto != null && texto.length() > 60000) {
-            return ResponseEntity.badRequest().build();
-        }
-        m.setSociosJson(texto);
-        return ResponseEntity.ok(maquinaService.guardarDirecto(m));
-    }
-
     @PutMapping("/{id}/ubicacion")
     public ResponseEntity<?> actualizarUbicacion(@PathVariable Long id, @RequestBody Map<String, Object> body) {
         return maquinaService.obtenerPorId(id).map(m -> {
