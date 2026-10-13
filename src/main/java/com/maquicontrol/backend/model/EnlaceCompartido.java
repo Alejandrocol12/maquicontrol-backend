@@ -26,6 +26,9 @@ public class EnlaceCompartido {
     // Si viene, el enlace muestra solo ese corte (las fechas del corte dentro de su periodo)
     private Long corteId;
 
+    // true = el corte en curso de ese periodo: desde el día siguiente al último corte, hasta hoy (se actualiza solo)
+    private boolean corteEnCurso = false;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -55,4 +58,7 @@ public class EnlaceCompartido {
 
     public Long getCorteId() { return corteId; }
     public void setCorteId(Long corteId) { this.corteId = corteId; }
+
+    public boolean isCorteEnCurso() { return corteEnCurso; }
+    public void setCorteEnCurso(boolean corteEnCurso) { this.corteEnCurso = corteEnCurso; }
 }

@@ -39,6 +39,9 @@ public class EnlaceCompartidoController {
             : corteIdRaw instanceof Number ? ((Number) corteIdRaw).longValue()
             : Long.valueOf(corteIdRaw.toString());
 
+        boolean corteEnCurso = Boolean.TRUE.equals(body.get("corteEnCurso")) || "true".equals(String.valueOf(body.get("corteEnCurso")));
+        if (corteEnCurso && faenaId == null) return ResponseEntity.badRequest().body(Map.of("error", "El corte en curso necesita un periodo"));
+
         Optional<Maquina> maquinaOpt = maquinaRepo.findById(maquinaId);
         if (maquinaOpt.isEmpty()) return ResponseEntity.notFound().build();
         Maquina m = maquinaOpt.get();
@@ -68,6 +71,7 @@ public class EnlaceCompartidoController {
         enlace.setNombre(nombre);
         enlace.setFaenaId(faenaId);
         enlace.setCorteId(corteId);
+        enlace.setCorteEnCurso(corteEnCurso && corteId == null);
         enlace.setActivo(true);
         enlace.setCreadoEn(LocalDateTime.now());
         return ResponseEntity.ok(enlaceRepo.save(enlace));
@@ -106,10 +110,20 @@ public class EnlaceCompartidoController {
 
         // Si el enlace es de un corte, solo cuenta lo que cae dentro de las fechas del corte
         final Corte corte = enlace.getCorteId() != null ? corteRepo.findById(enlace.getCorteId()).orElse(null) : null;
-        final java.time.LocalDate desdeCorte = corte != null ? corte.getFechaInicio() : null;
+        final boolean enCurso = corte == null && enlace.isCorteEnCurso() && enlace.getFaenaId() != null;
+        final List<Corte> cortesDelPeriodo = enlace.getFaenaId() != null
+            ? corteRepo.findByFaenaId(enlace.getFaenaId()).stream().sorted(Comparator.comparing(c -> c.getFechaInicio().toString())).collect(Collectors.toList())
+            : new ArrayList<>();
+        // El corte en curso arranca el día siguiente al último corte (o al inicio del periodo) y no tiene fin
+        final java.time.LocalDate desdeCorte = corte != null ? corte.getFechaInicio()
+            : enCurso ? (cortesDelPeriodo.isEmpty()
+                ? faenaRepo.findById(enlace.getFaenaId()).map(Faena::getFechaInicio).orElse(null)
+                : cortesDelPeriodo.get(cortesDelPeriodo.size() - 1).getFechaFin().plusDays(1))
+            : null;
         final java.time.LocalDate hastaCorte = corte != null ? corte.getFechaFin() : null;
-        final java.util.function.Predicate<java.time.LocalDate> enRango = f -> corte == null
-            || (f != null && !f.isBefore(desdeCorte) && !f.isAfter(hastaCorte));
+        final boolean acotado = corte != null || enCurso;
+        final java.util.function.Predicate<java.time.LocalDate> enRango = f -> !acotado
+            || (f != null && (desdeCorte == null || !f.isBefore(desdeCorte)) && (hastaCorte == null || !f.isAfter(hastaCorte)));
 
         List<Faena> faenas = faenaRepo.findByUsuarioIdAndMaquinaNombre(
             enlace.getUsuarioId(), enlace.getMaquinaNombre()
@@ -125,7 +139,7 @@ public class EnlaceCompartidoController {
             ))
             .map(f -> {
                 double ing, gas, util;
-                if (corte != null) {
+                if (acotado) {
                     ing  = ingresoRepo.findByFaenaId(f.getId()).stream().filter(x -> enRango.test(x.getFecha())).mapToDouble(Ingreso::getTotal).sum();
                     gas  = gastoRepo.findByFaenaId(f.getId()).stream().filter(x -> enRango.test(x.getFecha())).mapToDouble(Gasto::getMonto).sum();
                     util = ing - gas;
@@ -243,13 +257,12 @@ public class EnlaceCompartidoController {
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("nombre",         enlace.getNombre());
         response.put("periodoNombre",  periodoNombre);
-        if (corte != null) {
-            List<Corte> delPeriodo = corteRepo.findByFaenaId(corte.getFaenaId()).stream()
-                .sorted(Comparator.comparing(c -> c.getFechaInicio().toString())).collect(Collectors.toList());
+        if (acotado) {
             Map<String, Object> corteDto = new LinkedHashMap<>();
-            corteDto.put("numero", delPeriodo.indexOf(corte) + 1);
-            corteDto.put("fechaInicio", corte.getFechaInicio());
-            corteDto.put("fechaFin", corte.getFechaFin());
+            corteDto.put("numero", corte != null ? cortesDelPeriodo.indexOf(corte) + 1 : cortesDelPeriodo.size() + 1);
+            corteDto.put("fechaInicio", desdeCorte);
+            corteDto.put("fechaFin", hastaCorte);
+            corteDto.put("enCurso", enCurso);
             response.put("corte", corteDto);
         }
         response.put("maquina",        maquinaDto);
