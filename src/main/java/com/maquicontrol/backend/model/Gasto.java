@@ -21,6 +21,10 @@ public class Gasto {
     private String maquinaNombre;
     private Long faenaId;
 
+    // Quién pagó el gasto (nombre de la lista de pagadores). Vacío = sin asignar.
+    @Column(length = 80)
+    private String pagadoPor;
+
     @JsonIgnore
     @Column(name = "factura_pdf", columnDefinition = "LONGBLOB")
     private byte[] facturaPdf;
@@ -60,4 +64,7 @@ public class Gasto {
 
     public Long getFaenaId() { return faenaId; }
     public void setFaenaId(Long faenaId) { this.faenaId = faenaId; }
+
+    public String getPagadoPor() { return pagadoPor; }
+    public void setPagadoPor(String pagadoPor) { this.pagadoPor = pagadoPor; }
 }

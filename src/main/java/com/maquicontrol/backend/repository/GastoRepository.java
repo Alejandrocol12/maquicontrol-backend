@@ -17,6 +17,11 @@ public interface GastoRepository extends JpaRepository<Gasto, Long> {
     void deleteByMaquinaNombre(String maquinaNombre);
     void deleteByUsuarioIdAndMaquinaNombre(Long usuarioId, String maquinaNombre);
     List<Gasto> findByFaenaId(Long faenaId);
+    long countByUsuarioIdAndPagadoPor(Long usuarioId, String pagadoPor);
+
+    @Modifying
+    @Query("UPDATE Gasto g SET g.pagadoPor = :nuevo WHERE g.usuarioId = :uid AND g.pagadoPor = :viejo")
+    void actualizarPagador(@Param("uid") Long uid, @Param("viejo") String viejo, @Param("nuevo") String nuevo);
 
     @Modifying
     @Query("UPDATE Gasto g SET g.maquinaNombre = :nuevo WHERE g.usuarioId = :uid AND g.maquinaNombre = :viejo")

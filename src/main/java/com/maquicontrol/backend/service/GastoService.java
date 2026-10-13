@@ -50,6 +50,11 @@ public class GastoService {
         gasto.setMonto(gastoActualizado.getMonto());
         gasto.setFecha(gastoActualizado.getFecha());
         gasto.setMaquinaNombre(gastoActualizado.getMaquinaNombre());
+        // null = el cliente no lo mandó, se conserva; vacío = sin asignar
+        if (gastoActualizado.getPagadoPor() != null) {
+            String p = gastoActualizado.getPagadoPor().trim();
+            gasto.setPagadoPor(p.isEmpty() ? null : p);
+        }
         Gasto saved = gastoRepository.save(gasto);
         faenaService.recalcularTotalesSiCerrada(saved.getFaenaId());
         return saved;
