@@ -94,13 +94,23 @@ public class FaenaController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable Long id, Authentication auth) {
+    public ResponseEntity<?> eliminar(@PathVariable Long id, Authentication auth) {
         Long userId = (Long) auth.getPrincipal();
         Optional<Faena> existente = faenaService.obtenerPorId(id);
         if (existente.isEmpty() || !userId.equals(existente.get().getUsuarioId())) {
             return ResponseEntity.status(403).build();
         }
-        faenaService.eliminar(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(faenaService.eliminar(userId, id));
+    }
+
+    // Registros que quedaron de periodos que ya no existen (se ven como "Sin periodo asignado")
+    @GetMapping("/huerfanos")
+    public ResponseEntity<?> contarHuerfanos(Authentication auth) {
+        return ResponseEntity.ok(faenaService.contarHuerfanos((Long) auth.getPrincipal()));
+    }
+
+    @DeleteMapping("/huerfanos")
+    public ResponseEntity<?> limpiarHuerfanos(Authentication auth) {
+        return ResponseEntity.ok(faenaService.limpiarHuerfanos((Long) auth.getPrincipal()));
     }
 }

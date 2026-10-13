@@ -4,7 +4,11 @@ import com.maquicontrol.backend.model.Faena;
 import com.maquicontrol.backend.model.HoraTrabajada;
 import com.maquicontrol.backend.model.Periodo;
 import com.maquicontrol.backend.model.Salario;
+import com.maquicontrol.backend.repository.CombustibleRepository;
+import com.maquicontrol.backend.repository.CorteRepository;
 import com.maquicontrol.backend.repository.FaenaRepository;
+import com.maquicontrol.backend.repository.PagoClienteRepository;
+import com.maquicontrol.backend.repository.PagoOperadorRepository;
 import com.maquicontrol.backend.repository.GastoRepository;
 import com.maquicontrol.backend.repository.HoraTrabajadaRepository;
 import com.maquicontrol.backend.repository.IngresoRepository;
@@ -18,8 +22,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class FaenaService {
@@ -33,6 +41,10 @@ public class FaenaService {
     @Autowired private SalarioRepository salarioRepository;
     @Autowired private PeriodoRepository periodoRepository;
     @Autowired private OperadorRepository operadorRepository;
+    @Autowired private CombustibleRepository combustibleRepository;
+    @Autowired private CorteRepository corteRepository;
+    @Autowired private PagoClienteRepository pagoClienteRepository;
+    @Autowired private PagoOperadorRepository pagoOperadorRepository;
 
     public List<Faena> obtenerTodas(Long userId) {
         return faenaRepository.findByUsuarioId(userId);
@@ -283,7 +295,104 @@ public class FaenaService {
             });
     }
 
-    public void eliminar(Long id) {
+    // Eliminar un periodo borra también todo lo que se registró dentro de él (ingresos, gastos,
+    // combustible, mantenimientos, horas, nómina y cortes), para que no queden registros sueltos
+    // en Finanzas. Devuelve cuántos registros de cada tipo se borraron.
+    @Transactional
+    public Map<String, Integer> eliminar(Long userId, Long id) {
+        Map<String, Integer> borrados = borrarRegistrosDePeriodo(userId, id);
         faenaRepository.deleteById(id);
+        return borrados;
+    }
+
+    // Periodos que ya no existen pero cuyos registros siguen guardados (se eliminaron antes de que
+    // el borrado fuera en cascada). Se ven en Finanzas como "Sin periodo asignado".
+    private Set<Long> idsHuerfanos(Long userId) {
+        Set<Long> vivos = new HashSet<>();
+        faenaRepository.findByUsuarioId(userId).forEach(f -> vivos.add(f.getId()));
+        Set<Long> huerfanos = new HashSet<>();
+        ingresoRepository.findByUsuarioId(userId).forEach(x -> { if (x.getFaenaId() != null && !vivos.contains(x.getFaenaId())) huerfanos.add(x.getFaenaId()); });
+        gastoRepository.findByUsuarioId(userId).forEach(x -> { if (x.getFaenaId() != null && !vivos.contains(x.getFaenaId())) huerfanos.add(x.getFaenaId()); });
+        combustibleRepository.findByUsuarioId(userId).forEach(x -> { if (x.getFaenaId() != null && !vivos.contains(x.getFaenaId())) huerfanos.add(x.getFaenaId()); });
+        mantenimientoRepository.findByUsuarioId(userId).forEach(x -> { if (x.getFaenaId() != null && !vivos.contains(x.getFaenaId())) huerfanos.add(x.getFaenaId()); });
+        horaTrabajadaRepository.findByUsuarioId(userId).forEach(x -> { if (x.getFaenaId() != null && !vivos.contains(x.getFaenaId())) huerfanos.add(x.getFaenaId()); });
+        corteRepository.findByUsuarioId(userId).forEach(x -> { if (x.getFaenaId() != null && !vivos.contains(x.getFaenaId())) huerfanos.add(x.getFaenaId()); });
+        return huerfanos;
+    }
+
+    private static Map<String, Integer> conteoVacio() {
+        Map<String, Integer> m = new LinkedHashMap<>();
+        for (String k : new String[]{"ingresos", "gastos", "combustibles", "mantenimientos", "horas", "cortes"}) m.put(k, 0);
+        return m;
+    }
+
+    // Cuántos registros sueltos hay, sin borrar nada
+    public Map<String, Integer> contarHuerfanos(Long userId) {
+        Set<Long> huerfanos = idsHuerfanos(userId);
+        Map<String, Integer> m = conteoVacio();
+        if (huerfanos.isEmpty()) return m;
+        Set<Long> conPago = gastosDePagosAlOperador(userId);
+        ingresoRepository.findByUsuarioId(userId).stream().filter(x -> huerfanos.contains(x.getFaenaId())).forEach(x -> m.merge("ingresos", 1, Integer::sum));
+        gastoRepository.findByUsuarioId(userId).stream().filter(x -> huerfanos.contains(x.getFaenaId()) && !conPago.contains(x.getId())).forEach(x -> m.merge("gastos", 1, Integer::sum));
+        combustibleRepository.findByUsuarioId(userId).stream().filter(x -> huerfanos.contains(x.getFaenaId())).forEach(x -> m.merge("combustibles", 1, Integer::sum));
+        mantenimientoRepository.findByUsuarioId(userId).stream().filter(x -> huerfanos.contains(x.getFaenaId())).forEach(x -> m.merge("mantenimientos", 1, Integer::sum));
+        horaTrabajadaRepository.findByUsuarioId(userId).stream().filter(x -> huerfanos.contains(x.getFaenaId())).forEach(x -> m.merge("horas", 1, Integer::sum));
+        corteRepository.findByUsuarioId(userId).stream().filter(x -> huerfanos.contains(x.getFaenaId())).forEach(x -> m.merge("cortes", 1, Integer::sum));
+        return m;
+    }
+
+    @Transactional
+    public Map<String, Integer> limpiarHuerfanos(Long userId) {
+        Map<String, Integer> total = conteoVacio();
+        for (Long faenaId : idsHuerfanos(userId)) {
+            borrarRegistrosDePeriodo(userId, faenaId).forEach((k, v) -> total.merge(k, v, Integer::sum));
+        }
+        return total;
+    }
+
+    // Los gastos que nacieron de un pago al operador no se borran con el periodo: es plata que de
+    // verdad se le pagó. Solo se desligan del periodo.
+    private Set<Long> gastosDePagosAlOperador(Long userId) {
+        Set<Long> ids = new HashSet<>();
+        pagoOperadorRepository.findByUsuarioId(userId).forEach(p -> { if (p.getGastoGeneradoId() != null) ids.add(p.getGastoGeneradoId()); });
+        return ids;
+    }
+
+    private Map<String, Integer> borrarRegistrosDePeriodo(Long userId, Long faenaId) {
+        Map<String, Integer> m = conteoVacio();
+        Set<Long> conPago = gastosDePagosAlOperador(userId);
+
+        var ingresos = ingresoRepository.findByFaenaId(faenaId).stream().filter(x -> userId.equals(x.getUsuarioId())).toList();
+        ingresoRepository.deleteAll(ingresos); m.put("ingresos", ingresos.size());
+
+        var gastos = gastoRepository.findByFaenaId(faenaId).stream().filter(x -> userId.equals(x.getUsuarioId())).toList();
+        int borrados = 0;
+        for (var g : gastos) {
+            if (conPago.contains(g.getId())) { g.setFaenaId(null); gastoRepository.save(g); }
+            else { gastoRepository.delete(g); borrados++; }
+        }
+        m.put("gastos", borrados);
+
+        var combustibles = combustibleRepository.findByFaenaId(faenaId).stream().filter(x -> userId.equals(x.getUsuarioId())).toList();
+        combustibleRepository.deleteAll(combustibles); m.put("combustibles", combustibles.size());
+
+        var mantenimientos = mantenimientoRepository.findByFaenaId(faenaId).stream().filter(x -> userId.equals(x.getUsuarioId())).toList();
+        mantenimientoRepository.deleteAll(mantenimientos); m.put("mantenimientos", mantenimientos.size());
+
+        var horas = horaTrabajadaRepository.findByFaenaId(faenaId).stream().filter(x -> userId.equals(x.getUsuarioId())).toList();
+        horaTrabajadaRepository.deleteAll(horas); m.put("horas", horas.size());
+
+        var salarios = salarioRepository.findByFaenaId(faenaId).stream().filter(x -> userId.equals(x.getUsuarioId())).toList();
+        salarioRepository.deleteAll(salarios);
+
+        var cortes = corteRepository.findByFaenaId(faenaId).stream().filter(x -> userId.equals(x.getUsuarioId())).toList();
+        for (var c : cortes) {
+            // el cobro que creó el corte se borra solo si todavía no tiene abonos
+            if (c.getPagoClienteId() != null) {
+                pagoClienteRepository.findById(c.getPagoClienteId()).filter(p -> p.getValorPagado() <= 0).ifPresent(pagoClienteRepository::delete);
+            }
+        }
+        corteRepository.deleteAll(cortes); m.put("cortes", cortes.size());
+        return m;
     }
 }
