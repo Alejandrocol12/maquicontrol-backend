@@ -59,6 +59,8 @@ public class FaenaService {
     }
 
     public Faena crear(Long userId, Faena faena) {
+        if ("gastos".equals(faena.getTipo())) return crearDeGastos(userId, faena);
+        faena.setTipo("trabajo");
         if (faena.getMaquinaNombre() != null
                 && faenaRepository.findByUsuarioIdAndMaquinaNombreAndEstado(userId, faena.getMaquinaNombre(), "activa").isPresent()) {
             throw new IllegalStateException(
@@ -66,6 +68,26 @@ public class FaenaService {
         }
         faena.setUsuarioId(userId);
         faena.setEstado("activa");
+        if (faena.getFechaInicio() == null) faena.setFechaInicio(LocalDate.now());
+        return faenaRepository.save(faena);
+    }
+
+    // Periodo solo para gastos externos: no cuenta como periodo de trabajo ni toca la nómina del
+    // operador. Su estado es "abierta" (no "activa"), así que el resto de la app no lo confunde con
+    // el periodo en campo de la máquina. Solo puede haber uno abierto por máquina.
+    private Faena crearDeGastos(Long userId, Faena faena) {
+        if (faena.getMaquinaNombre() == null || faena.getMaquinaNombre().isBlank()) {
+            throw new IllegalStateException("Escoge la máquina del periodo de gastos.");
+        }
+        boolean yaHay = faenaRepository.findByUsuarioIdAndMaquinaNombre(userId, faena.getMaquinaNombre()).stream()
+            .anyMatch(f -> "gastos".equals(f.getTipo()) && "abierta".equals(f.getEstado()));
+        if (yaHay) {
+            throw new IllegalStateException("Ya hay un periodo de gastos externos abierto en " + faena.getMaquinaNombre() + " — ciérralo antes de abrir otro.");
+        }
+        faena.setUsuarioId(userId);
+        faena.setTipo("gastos");
+        faena.setEstado("abierta");
+        faena.setCliente(null);
         if (faena.getFechaInicio() == null) faena.setFechaInicio(LocalDate.now());
         return faenaRepository.save(faena);
     }
@@ -83,6 +105,14 @@ public class FaenaService {
     public Faena cerrar(Long id) {
         Faena faena = faenaRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Faena no encontrada"));
+
+        // Periodo de gastos externos: solo se cierra, sin salario ni corte de nómina
+        if ("gastos".equals(faena.getTipo())) {
+            faena.setEstado("cerrada");
+            faena.setFechaFin(LocalDate.now());
+            faena.setTotalGastos(gastoRepository.findByFaenaId(id).stream().mapToDouble(g -> g.getMonto()).sum());
+            return faenaRepository.save(faena);
+        }
 
         double totalIngresos = ingresoRepository.findByFaenaId(id)
             .stream().mapToDouble(i -> i.getTotal()).sum();
@@ -114,6 +144,14 @@ public class FaenaService {
     public Faena reabrir(Long id) {
         Faena faena = faenaRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Faena no encontrada"));
+        if ("gastos".equals(faena.getTipo())) {
+            boolean otra = faenaRepository.findByUsuarioIdAndMaquinaNombre(faena.getUsuarioId(), faena.getMaquinaNombre()).stream()
+                .anyMatch(f -> !f.getId().equals(faena.getId()) && "gastos".equals(f.getTipo()) && "abierta".equals(f.getEstado()));
+            if (otra) throw new IllegalStateException("Ya hay otro periodo de gastos externos abierto en " + faena.getMaquinaNombre() + " — ciérralo antes de reabrir este.");
+            faena.setEstado("abierta");
+            faena.setFechaFin(null);
+            return faenaRepository.save(faena);
+        }
         if (hayOtraFaenaActivaEnMaquina(faena)) {
             throw new IllegalStateException(
                 "Ya hay otro periodo activo en la máquina " + faena.getMaquinaNombre()

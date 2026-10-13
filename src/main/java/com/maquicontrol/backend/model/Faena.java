@@ -18,7 +18,10 @@ public class Faena {
     private String cliente;
     private LocalDate fechaInicio;
     private LocalDate fechaFin;
-    private String estado; // "activa" | "cerrada"
+    private String estado; // "activa" | "cerrada" (periodos de trabajo) · "abierta" | "cerrada" (gastos externos)
+
+    // "trabajo" (por defecto) o "gastos": periodo solo para gastos externos a la obra de la máquina
+    private String tipo;
     private String nota;
 
     private double totalIngresos;
@@ -76,4 +79,7 @@ public class Faena {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public String getTipo() { return tipo == null || tipo.isBlank() ? "trabajo" : tipo; }
+    public void setTipo(String tipo) { this.tipo = tipo; }
 }

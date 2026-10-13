@@ -32,7 +32,10 @@ public class GastoService {
     @Transactional
     public Gasto guardar(Long userId, Gasto gasto) {
         gasto.setUsuarioId(userId);
-        if (gasto.getMaquinaNombre() != null && gasto.getFaenaId() == null) {
+        // faenaId -1 = el usuario eligió "sin periodo": no se asigna al periodo en campo
+        boolean sinPeriodo = gasto.getFaenaId() != null && gasto.getFaenaId() < 0;
+        if (sinPeriodo) gasto.setFaenaId(null);
+        if (!sinPeriodo && gasto.getMaquinaNombre() != null && gasto.getFaenaId() == null) {
             faenaRepository.findByUsuarioIdAndMaquinaNombreAndEstado(userId, gasto.getMaquinaNombre(), "activa")
                 .ifPresent(f -> gasto.setFaenaId(f.getId()));
         }
@@ -45,11 +48,16 @@ public class GastoService {
     public Gasto actualizar(Long id, Gasto gastoActualizado) {
         Gasto gasto = gastoRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Gasto no encontrado"));
+        Long faenaAnterior = gasto.getFaenaId();
         gasto.setDescripcion(gastoActualizado.getDescripcion());
         gasto.setCategoria(gastoActualizado.getCategoria());
         gasto.setMonto(gastoActualizado.getMonto());
         gasto.setFecha(gastoActualizado.getFecha());
         gasto.setMaquinaNombre(gastoActualizado.getMaquinaNombre());
+        // periodo: -1 = sin periodo; un id = ese periodo; sin dato = se conserva el que tenía
+        if (gastoActualizado.getFaenaId() != null) {
+            gasto.setFaenaId(gastoActualizado.getFaenaId() < 0 ? null : gastoActualizado.getFaenaId());
+        }
         // null = el cliente no lo mandó, se conserva; vacío = sin asignar
         if (gastoActualizado.getPagadoPor() != null) {
             String p = gastoActualizado.getPagadoPor().trim();
@@ -57,6 +65,7 @@ public class GastoService {
         }
         Gasto saved = gastoRepository.save(gasto);
         faenaService.recalcularTotalesSiCerrada(saved.getFaenaId());
+        if (faenaAnterior != null && !faenaAnterior.equals(saved.getFaenaId())) faenaService.recalcularTotalesSiCerrada(faenaAnterior);
         return saved;
     }
 
