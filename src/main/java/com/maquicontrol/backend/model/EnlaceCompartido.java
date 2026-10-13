@@ -23,6 +23,9 @@ public class EnlaceCompartido {
     // Si tiene valor, comparte solo ese periodo (faena) en particular.
     private Long faenaId;
 
+    // Si viene, el enlace muestra solo ese corte (las fechas del corte dentro de su periodo)
+    private Long corteId;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -49,4 +52,7 @@ public class EnlaceCompartido {
 
     public Long getFaenaId() { return faenaId; }
     public void setFaenaId(Long faenaId) { this.faenaId = faenaId; }
+
+    public Long getCorteId() { return corteId; }
+    public void setCorteId(Long corteId) { this.corteId = corteId; }
 }

@@ -21,6 +21,7 @@ public class EnlaceCompartidoController {
     @Autowired private GastoRepository gastoRepo;
     @Autowired private MantenimientoRepository mantenimientoRepo;
     @Autowired private VistaEnlaceRepository vistaEnlaceRepo;
+    @Autowired private CorteRepository corteRepo;
 
     @PostMapping("/api/compartido")
     public ResponseEntity<?> crear(@RequestBody Map<String, Object> body, Authentication auth) {
@@ -33,9 +34,23 @@ public class EnlaceCompartidoController {
             : faenaIdRaw instanceof Number ? ((Number) faenaIdRaw).longValue()
             : Long.valueOf(faenaIdRaw.toString());
 
+        Object corteIdRaw = body.get("corteId");
+        Long corteId = corteIdRaw == null ? null
+            : corteIdRaw instanceof Number ? ((Number) corteIdRaw).longValue()
+            : Long.valueOf(corteIdRaw.toString());
+
         Optional<Maquina> maquinaOpt = maquinaRepo.findById(maquinaId);
         if (maquinaOpt.isEmpty()) return ResponseEntity.notFound().build();
         Maquina m = maquinaOpt.get();
+
+        // Compartir un corte: el periodo es el del corte
+        if (corteId != null) {
+            Optional<Corte> corteOpt = corteRepo.findById(corteId);
+            if (corteOpt.isEmpty() || !userId.equals(corteOpt.get().getUsuarioId())) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Corte inválido"));
+            }
+            faenaId = corteOpt.get().getFaenaId();
+        }
 
         if (faenaId != null) {
             Optional<Faena> faenaOpt = faenaRepo.findById(faenaId);
@@ -52,6 +67,7 @@ public class EnlaceCompartidoController {
         enlace.setMaquinaNombre(m.getNombre());
         enlace.setNombre(nombre);
         enlace.setFaenaId(faenaId);
+        enlace.setCorteId(corteId);
         enlace.setActivo(true);
         enlace.setCreadoEn(LocalDateTime.now());
         return ResponseEntity.ok(enlaceRepo.save(enlace));
@@ -88,6 +104,13 @@ public class EnlaceCompartidoController {
         if (maquinaOpt.isEmpty()) return ResponseEntity.notFound().build();
         Maquina m = maquinaOpt.get();
 
+        // Si el enlace es de un corte, solo cuenta lo que cae dentro de las fechas del corte
+        final Corte corte = enlace.getCorteId() != null ? corteRepo.findById(enlace.getCorteId()).orElse(null) : null;
+        final java.time.LocalDate desdeCorte = corte != null ? corte.getFechaInicio() : null;
+        final java.time.LocalDate hastaCorte = corte != null ? corte.getFechaFin() : null;
+        final java.util.function.Predicate<java.time.LocalDate> enRango = f -> corte == null
+            || (f != null && !f.isBefore(desdeCorte) && !f.isAfter(hastaCorte));
+
         List<Faena> faenas = faenaRepo.findByUsuarioIdAndMaquinaNombre(
             enlace.getUsuarioId(), enlace.getMaquinaNombre()
         );
@@ -102,7 +125,11 @@ public class EnlaceCompartidoController {
             ))
             .map(f -> {
                 double ing, gas, util;
-                if ("cerrada".equals(f.getEstado())) {
+                if (corte != null) {
+                    ing  = ingresoRepo.findByFaenaId(f.getId()).stream().filter(x -> enRango.test(x.getFecha())).mapToDouble(Ingreso::getTotal).sum();
+                    gas  = gastoRepo.findByFaenaId(f.getId()).stream().filter(x -> enRango.test(x.getFecha())).mapToDouble(Gasto::getMonto).sum();
+                    util = ing - gas;
+                } else if ("cerrada".equals(f.getEstado())) {
                     ing  = f.getTotalIngresos();
                     gas  = f.getTotalGastos();
                     util = f.getUtilidadNeta();
@@ -132,6 +159,7 @@ public class EnlaceCompartidoController {
             .findByUsuarioIdAndMaquinaNombre(enlace.getUsuarioId(), enlace.getMaquinaNombre())
             .stream()
             .filter(mt -> enlace.getFaenaId() == null || enlace.getFaenaId().equals(mt.getFaenaId()))
+            .filter(mt -> enRango.test(mt.getFecha()))
             .sorted(Comparator.comparing(
                 mt -> mt.getFecha() != null ? mt.getFecha().toString() : "",
                 Comparator.reverseOrder()
@@ -165,6 +193,7 @@ public class EnlaceCompartidoController {
             .findByUsuarioIdAndMaquinaNombre(enlace.getUsuarioId(), enlace.getMaquinaNombre())
             .stream()
             .filter(g -> enlace.getFaenaId() == null || enlace.getFaenaId().equals(g.getFaenaId()))
+            .filter(g -> enRango.test(g.getFecha()))
             .sorted(Comparator.comparing(
                 g -> g.getFecha() != null ? g.getFecha().toString() : "",
                 Comparator.reverseOrder()
@@ -183,6 +212,7 @@ public class EnlaceCompartidoController {
             .findByUsuarioIdAndMaquinaNombre(enlace.getUsuarioId(), enlace.getMaquinaNombre())
             .stream()
             .filter(i -> enlace.getFaenaId() == null || enlace.getFaenaId().equals(i.getFaenaId()))
+            .filter(i -> enRango.test(i.getFecha()))
             .collect(Collectors.toList());
 
         double totalHoras = ingresosFiltrados.stream()
@@ -213,6 +243,15 @@ public class EnlaceCompartidoController {
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("nombre",         enlace.getNombre());
         response.put("periodoNombre",  periodoNombre);
+        if (corte != null) {
+            List<Corte> delPeriodo = corteRepo.findByFaenaId(corte.getFaenaId()).stream()
+                .sorted(Comparator.comparing(c -> c.getFechaInicio().toString())).collect(Collectors.toList());
+            Map<String, Object> corteDto = new LinkedHashMap<>();
+            corteDto.put("numero", delPeriodo.indexOf(corte) + 1);
+            corteDto.put("fechaInicio", corte.getFechaInicio());
+            corteDto.put("fechaFin", corte.getFechaFin());
+            response.put("corte", corteDto);
+        }
         response.put("maquina",        maquinaDto);
         response.put("resumen",        resumen);
         response.put("faenas",         faenasDto);
