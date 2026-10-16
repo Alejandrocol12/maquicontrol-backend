@@ -31,6 +31,9 @@ public class Corte {
 
     private boolean conOperador = true;
 
+    // Nombre que le pone el admin al corte (vacio = "Corte N" segun su orden)
+    private String nombre;
+
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -63,6 +66,9 @@ public class Corte {
 
     public boolean isConOperador() { return conOperador; }
     public void setConOperador(boolean conOperador) { this.conOperador = conOperador; }
+
+    public String getNombre() { return nombre; }
+    public void setNombre(String nombre) { this.nombre = nombre; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
 }

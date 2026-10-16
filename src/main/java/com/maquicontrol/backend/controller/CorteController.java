@@ -41,6 +41,16 @@ public class CorteController {
         }
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<?> renombrar(@PathVariable Long id, @RequestBody Map<String, Object> body, Authentication auth) {
+        try {
+            Object n = body.get("nombre");
+            return ResponseEntity.ok(corteService.renombrar((Long) auth.getPrincipal(), id, n == null ? null : String.valueOf(n)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<?> eliminar(@PathVariable Long id, Authentication auth) {
         try {

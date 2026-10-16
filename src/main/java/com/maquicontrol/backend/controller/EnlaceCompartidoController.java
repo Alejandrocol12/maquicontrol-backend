@@ -260,6 +260,7 @@ public class EnlaceCompartidoController {
         if (acotado) {
             Map<String, Object> corteDto = new LinkedHashMap<>();
             corteDto.put("numero", corte != null ? cortesDelPeriodo.indexOf(corte) + 1 : cortesDelPeriodo.size() + 1);
+            corteDto.put("nombre", corte != null ? corte.getNombre() : null);
             corteDto.put("fechaInicio", desdeCorte);
             corteDto.put("fechaFin", hastaCorte);
             corteDto.put("enCurso", enCurso);

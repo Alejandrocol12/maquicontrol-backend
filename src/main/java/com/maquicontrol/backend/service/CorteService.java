@@ -84,6 +84,16 @@ public class CorteService {
     // Solo se puede deshacer el ultimo corte del periodo, para no dejar huecos en la mitad.
     // El cobro que se creo con el corte se borra solo si todavia no tiene abonos.
     @Transactional
+    public Corte renombrar(Long userId, Long id, String nombre) {
+        Corte corte = corteRepository.findById(id)
+            .filter(c -> userId.equals(c.getUsuarioId()))
+            .orElseThrow(() -> new IllegalArgumentException("Corte no encontrado"));
+        String limpio = nombre == null ? "" : nombre.trim();
+        if (limpio.length() > 60) throw new IllegalArgumentException("El nombre puede tener hasta 60 letras");
+        corte.setNombre(limpio.isEmpty() ? null : limpio);
+        return corteRepository.save(corte);
+    }
+
     public void eliminar(Long userId, Long id) {
         Corte corte = corteRepository.findById(id)
             .filter(c -> userId.equals(c.getUsuarioId()))
