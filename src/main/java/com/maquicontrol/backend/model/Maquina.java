@@ -41,8 +41,9 @@ public class Maquina {
     public String getPlaca() { return placa; }
     public void setPlaca(String placa) { this.placa = placa; }
 
-    public double getHorometroActual() { return horometroActual; }
-    public void setHorometroActual(double horometroActual) { this.horometroActual = horometroActual; }
+    // El horómetro se maneja con un decimal: se redondea para que no queden restos como 11620.699999999999
+    public double getHorometroActual() { return Math.round(horometroActual * 10) / 10.0; }
+    public void setHorometroActual(double horometroActual) { this.horometroActual = Math.round(horometroActual * 10) / 10.0; }
 
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }

@@ -56,9 +56,12 @@ public class Ingreso {
     public Long getFaenaId() { return faenaId; }
     public void setFaenaId(Long faenaId) { this.faenaId = faenaId; }
 
-    public Double getHorometroInicio() { return horometroInicio; }
-    public void setHorometroInicio(Double horometroInicio) { this.horometroInicio = horometroInicio; }
+    // El horómetro se maneja con un decimal: se redondea para que no queden restos como 11620.699999999999
+    private static Double r1(Double x) { return x == null ? null : Math.round(x * 10) / 10.0; }
 
-    public Double getHorometroFin() { return horometroFin; }
-    public void setHorometroFin(Double horometroFin) { this.horometroFin = horometroFin; }
+    public Double getHorometroInicio() { return r1(horometroInicio); }
+    public void setHorometroInicio(Double horometroInicio) { this.horometroInicio = r1(horometroInicio); }
+
+    public Double getHorometroFin() { return r1(horometroFin); }
+    public void setHorometroFin(Double horometroFin) { this.horometroFin = r1(horometroFin); }
 }

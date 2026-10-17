@@ -56,11 +56,14 @@ public class HoraTrabajada {
     public String getHoraSalida() { return horaSalida; }
     public void setHoraSalida(String horaSalida) { this.horaSalida = horaSalida; }
 
-    public double getHorometroInicio() { return horometroInicio; }
-    public void setHorometroInicio(double horometroInicio) { this.horometroInicio = horometroInicio; }
+    // El horómetro se maneja con un decimal: se redondea para que no queden restos como 11620.699999999999
+    private static double r1(double x) { return Math.round(x * 10) / 10.0; }
 
-    public double getHorometroFin() { return horometroFin; }
-    public void setHorometroFin(double horometroFin) { this.horometroFin = horometroFin; }
+    public double getHorometroInicio() { return r1(horometroInicio); }
+    public void setHorometroInicio(double horometroInicio) { this.horometroInicio = r1(horometroInicio); }
+
+    public double getHorometroFin() { return r1(horometroFin); }
+    public void setHorometroFin(double horometroFin) { this.horometroFin = r1(horometroFin); }
 
     public double getValorHora() { return valorHora; }
     public void setValorHora(double valorHora) { this.valorHora = valorHora; }
