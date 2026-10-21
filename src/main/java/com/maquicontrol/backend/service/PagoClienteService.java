@@ -53,6 +53,8 @@ public class PagoClienteService {
         pago.setValorPagado(pagoActualizado.getValorPagado());
         pago.setSaldoPendiente(pagoActualizado.getValorTotal() - pagoActualizado.getValorPagado());
         pago.setFecha(pagoActualizado.getFecha());
+        pago.setMetodoPago(limpio(pagoActualizado.getMetodoPago()));
+        pago.setComprobante(limpio(pagoActualizado.getComprobante()));
         if (pago.getSaldoPendiente() <= 0) {
             pago.setEstado("Pagado");
         } else if (pago.getValorPagado() > 0) {
@@ -61,6 +63,10 @@ public class PagoClienteService {
             pago.setEstado("Deuda");
         }
         return pagoRepository.save(pago);
+    }
+
+    private static String limpio(String t) {
+        return t == null || t.trim().isEmpty() ? null : t.trim();
     }
 
     public void eliminar(Long id) {

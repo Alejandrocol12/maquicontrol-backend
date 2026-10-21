@@ -22,6 +22,13 @@ public class PagoCliente {
     private String estado;
     private LocalDate fecha;
 
+    // Cómo se pagó (transferencia, efectivo...) y número del comprobante; opcionales
+    @Column(length = 40)
+    private String metodoPago;
+
+    @Column(length = 60)
+    private String comprobante;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -48,6 +55,12 @@ public class PagoCliente {
 
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }
+
+    public String getMetodoPago() { return metodoPago; }
+    public void setMetodoPago(String metodoPago) { this.metodoPago = metodoPago; }
+
+    public String getComprobante() { return comprobante; }
+    public void setComprobante(String comprobante) { this.comprobante = comprobante; }
 
     public LocalDate getFecha() { return fecha; }
     public void setFecha(LocalDate fecha) { this.fecha = fecha; }
