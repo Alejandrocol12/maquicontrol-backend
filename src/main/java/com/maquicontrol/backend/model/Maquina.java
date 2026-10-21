@@ -21,6 +21,9 @@ public class Maquina {
     private double valorHoraOperador;
     private double valorHoraMaquina;
 
+    // Meta de horas del mes que se pone el usuario; null = sin meta
+    private Double metaMensualHoras;
+
     private Double latitud;
     private Double longitud;
     private String ubicacionNombre;
@@ -56,6 +59,9 @@ public class Maquina {
 
     public double getValorHoraMaquina() { return valorHoraMaquina; }
     public void setValorHoraMaquina(double valorHoraMaquina) { this.valorHoraMaquina = valorHoraMaquina; }
+
+    public Double getMetaMensualHoras() { return metaMensualHoras; }
+    public void setMetaMensualHoras(Double metaMensualHoras) { this.metaMensualHoras = metaMensualHoras; }
 
     public Double getLatitud() { return latitud; }
     public void setLatitud(Double latitud) { this.latitud = latitud; }

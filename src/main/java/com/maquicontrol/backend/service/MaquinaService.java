@@ -54,6 +54,10 @@ public class MaquinaService {
         maquina.setOperadorNombre(maquinaActualizada.getOperadorNombre());
         maquina.setValorHoraOperador(maquinaActualizada.getValorHoraOperador());
         maquina.setValorHoraMaquina(maquinaActualizada.getValorHoraMaquina());
+        // Solo se cambia si viene en la petición, para que los formularios que no la mandan no la borren
+        if (maquinaActualizada.getMetaMensualHoras() != null) {
+            maquina.setMetaMensualHoras(maquinaActualizada.getMetaMensualHoras() > 0 ? maquinaActualizada.getMetaMensualHoras() : null);
+        }
         Maquina saved = maquinaRepository.save(maquina);
 
         // #7: si el nombre cambió, cascadear la actualización a todos los registros relacionados
