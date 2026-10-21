@@ -25,6 +25,13 @@ public class Gasto {
     @Column(length = 80)
     private String pagadoPor;
 
+    // Proveedor y número de factura o remisión (opcionales)
+    @Column(length = 120)
+    private String proveedor;
+
+    @Column(length = 60)
+    private String numeroFactura;
+
     @JsonIgnore
     @Column(name = "factura_pdf", columnDefinition = "LONGBLOB")
     private byte[] facturaPdf;
@@ -53,6 +60,12 @@ public class Gasto {
 
     public String getMaquinaNombre() { return maquinaNombre; }
     public void setMaquinaNombre(String maquinaNombre) { this.maquinaNombre = maquinaNombre; }
+
+    public String getProveedor() { return proveedor; }
+    public void setProveedor(String proveedor) { this.proveedor = proveedor; }
+
+    public String getNumeroFactura() { return numeroFactura; }
+    public void setNumeroFactura(String numeroFactura) { this.numeroFactura = numeroFactura; }
 
     public byte[] getFacturaPdf() { return facturaPdf; }
     public void setFacturaPdf(byte[] facturaPdf) { this.facturaPdf = facturaPdf; }

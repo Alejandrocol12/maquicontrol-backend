@@ -63,6 +63,14 @@ public class GastoService {
             String p = gastoActualizado.getPagadoPor().trim();
             gasto.setPagadoPor(p.isEmpty() ? null : p);
         }
+        if (gastoActualizado.getProveedor() != null) {
+            String v = gastoActualizado.getProveedor().trim();
+            gasto.setProveedor(v.isEmpty() ? null : v);
+        }
+        if (gastoActualizado.getNumeroFactura() != null) {
+            String v = gastoActualizado.getNumeroFactura().trim();
+            gasto.setNumeroFactura(v.isEmpty() ? null : v);
+        }
         Gasto saved = gastoRepository.save(gasto);
         faenaService.recalcularTotalesSiCerrada(saved.getFaenaId());
         if (faenaAnterior != null && !faenaAnterior.equals(saved.getFaenaId())) faenaService.recalcularTotalesSiCerrada(faenaAnterior);
