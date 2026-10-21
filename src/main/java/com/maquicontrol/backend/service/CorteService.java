@@ -33,6 +33,12 @@ public class CorteService {
     // lo que ya existe (409).
     @Transactional
     public Corte crear(Long userId, Long faenaId, LocalDate inicio, LocalDate fin, boolean crearCobro, boolean conOperador) {
+        return crear(userId, faenaId, inicio, fin, crearCobro, conOperador, null);
+    }
+
+    // observaciones (opcional) se agregan a la descripción del cobro, para la cuenta de cobro o remisión
+    @Transactional
+    public Corte crear(Long userId, Long faenaId, LocalDate inicio, LocalDate fin, boolean crearCobro, boolean conOperador, String observaciones) {
         if (faenaId == null || inicio == null || fin == null) throw new IllegalArgumentException("Faltan las fechas del corte");
         if (inicio.isAfter(fin)) throw new IllegalArgumentException("La fecha \"desde\" no puede ser después de \"hasta\"");
 
@@ -72,7 +78,8 @@ public class CorteService {
             PagoCliente pago = new PagoCliente();
             pago.setCliente(cliente != null && !cliente.isBlank() ? cliente : "Cliente sin nombre");
             pago.setMaquinaNombre(faena.getMaquinaNombre());
-            pago.setDescripcion("Corte " + numero + " · " + fechaCorta(inicio) + " a " + fechaCorta(fin) + " · " + formatoHoras(horas) + " h");
+            pago.setDescripcion("Corte " + numero + " · " + fechaCorta(inicio) + " a " + fechaCorta(fin) + " · " + formatoHoras(horas) + " h"
+                + (observaciones != null && !observaciones.isBlank() ? " · " + observaciones.trim() : ""));
             pago.setValorTotal(total);
             pago.setValorPagado(0);
             pago.setFecha(fin);

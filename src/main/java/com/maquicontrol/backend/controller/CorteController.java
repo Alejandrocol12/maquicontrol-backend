@@ -32,7 +32,10 @@ public class CorteController {
             LocalDate fin = fecha(body.get("fechaFin"));
             boolean crearCobro = !Boolean.FALSE.equals(body.get("crearCobro"));
             boolean conOperador = !Boolean.FALSE.equals(body.get("conOperador"));
-            return ResponseEntity.ok(corteService.crear(userId, faenaId, inicio, fin, crearCobro, conOperador));
+            Object obs = body.get("observaciones");
+            String observaciones = obs == null ? null : String.valueOf(obs);
+            if (observaciones != null && observaciones.length() > 150) observaciones = observaciones.substring(0, 150);
+            return ResponseEntity.ok(corteService.crear(userId, faenaId, inicio, fin, crearCobro, conOperador, observaciones));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(409).body(Map.of("error", e.getMessage()));
         } catch (IllegalArgumentException | java.time.DateTimeException e) {
