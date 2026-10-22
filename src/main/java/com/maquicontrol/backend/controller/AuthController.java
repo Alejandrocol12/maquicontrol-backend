@@ -290,7 +290,7 @@ public class AuthController {
         "<table width='100%' cellpadding='0' cellspacing='0' style='background:#f0f4f8;padding:32px 16px;'><tr><td align='center'>" +
         "<table width='600' cellpadding='0' cellspacing='0' style='max-width:600px;width:100%;'>" +
         "<tr><td style='background:linear-gradient(135deg,#0d1b2a 0%,#10263c 100%);border-radius:16px 16px 0 0;padding:32px 40px;text-align:center;'>" +
-        "<div style='font-size:32px;font-weight:900;letter-spacing:-1px;'><span style='color:#f5a623;'>Maqui</span><span style='color:#fff;'>Control</span></div>" +
+        "<div style='font-size:32px;font-weight:900;letter-spacing:-1px;'><img src='https://www.moventra.sbs/logo-moventra-claro.png' alt='' height='34' style='vertical-align:middle;margin-right:8px;'/><span style='color:#f5a623;'>M</span><span style='color:#fff;'>OVENTRA</span></div>" +
         "</td></tr>" +
         "<tr><td style='background:#fff;padding:40px 40px 36px;text-align:center;'>" +
         "<div style='width:64px;height:64px;background:#e8f5e9;border:2px solid #a5d6a7;border-radius:50%;margin:0 auto 20px;font-size:28px;line-height:64px;'>&#9993;</div>" +
@@ -307,7 +307,7 @@ public class AuthController {
         "<div style='font-size:12px;color:#c0392b;line-height:1.6;'>&#128274; <strong>Si no solicitaste este cambio</strong>, ignora este correo. Tu correo actual no será modificado.</div></div>" +
         "</td></tr>" +
         "<tr><td style='background:#f8fafc;border-radius:0 0 16px 16px;padding:20px 40px;text-align:center;border-top:1px solid #e2e8f0;'>" +
-        "<div style='font-size:14px;font-weight:800;color:#0d1b2a;'><span style='color:#f5a623;'>Maqui</span>Control</div>" +
+        "<div style='font-size:14px;font-weight:800;color:#0d1b2a;'><span style='color:#f5a623;'>M</span>OVENTRA</div>" +
         "</td></tr>" +
         "</table></td></tr></table></body></html>";
     }
@@ -321,7 +321,7 @@ public class AuthController {
         // HEADER
         "<tr><td style='background:linear-gradient(135deg,#0d1b2a 0%,#10263c 100%);border-radius:16px 16px 0 0;padding:32px 40px;text-align:center;'>" +
         "<div style='font-size:32px;font-weight:900;letter-spacing:-1px;line-height:1;'>" +
-        "<span style='color:#f5a623;'>Maqui</span><span style='color:#fff;'>Control</span></div>" +
+        "<img src='https://www.moventra.sbs/logo-moventra-claro.png' alt='' height='34' style='vertical-align:middle;margin-right:8px;'/><span style='color:#f5a623;'>M</span><span style='color:#fff;'>OVENTRA</span></div>" +
         "</td></tr>" +
 
         // BODY
@@ -355,7 +355,7 @@ public class AuthController {
 
         // FOOTER
         "<tr><td style='background:#f8fafc;border-radius:0 0 16px 16px;padding:20px 40px;text-align:center;border-top:1px solid #e2e8f0;'>" +
-        "<div style='font-size:14px;font-weight:800;color:#0d1b2a;margin-bottom:4px;'><span style='color:#f5a623;'>Maqui</span>Control</div>" +
+        "<div style='font-size:14px;font-weight:800;color:#0d1b2a;margin-bottom:4px;'><span style='color:#f5a623;'>M</span>OVENTRA</div>" +
         "<p style='margin:4px 0 0;color:#9aa5b4;font-size:11px;'>Recibiste este correo porque solicitaste cambiar tu contraseña.</p>" +
         "</td></tr>" +
 
