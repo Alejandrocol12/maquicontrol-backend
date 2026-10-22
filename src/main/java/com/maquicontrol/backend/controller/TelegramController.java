@@ -77,7 +77,7 @@ public class TelegramController {
             }
 
             if (operador == null) {
-                enviar(chatId, "⚙ *MaquiControl*\n\nNo estás vinculado.\nPide el código a tu administrador y envía:\n*/start CODIGO*");
+                enviar(chatId, "⚙ *Moventra*\n\nNo estás vinculado.\nPide el código a tu administrador y envía:\n*/start CODIGO*");
                 return ResponseEntity.ok("ok");
             }
 
@@ -96,9 +96,9 @@ public class TelegramController {
                         && !lower.startsWith("/")) {
                     handleMontoPendiente(chatId, text, operador, pendiente);
                 } else if (text.equals(BTN_HORAS)) {
-                    enviarConMenu(chatId, "⚙ *MaquiControl*\n\nEnvíame las horas trabajadas. Ejemplos:\n• _8 horas_\n• _9h CAT 320_\n• _7.5 horas excavadora_\n\nSolo escribe y lo registro automáticamente.");
+                    enviarConMenu(chatId, "⚙ *Moventra*\n\nEnvíame las horas trabajadas. Ejemplos:\n• _8 horas_\n• _9h CAT 320_\n• _7.5 horas excavadora_\n\nSolo escribe y lo registro automáticamente.");
                 } else if (text.equals(BTN_GASTO)) {
-                    enviarConMenu(chatId, "⚙ *MaquiControl*\n\nEnvíame el gasto. Ejemplos:\n• _gasté $85.000 en filtro_\n• _gasto 150000 aceite CAT_\n• _compré repuesto 75000_\n\nO envía directamente la foto o PDF de la factura.");
+                    enviarConMenu(chatId, "⚙ *Moventra*\n\nEnvíame el gasto. Ejemplos:\n• _gasté $85.000 en filtro_\n• _gasto 150000 aceite CAT_\n• _compré repuesto 75000_\n\nO envía directamente la foto o PDF de la factura.");
                 } else if (text.equals(BTN_RESUMEN) || lower.startsWith("/resumen") || lower.equals("resumen") || lower.equals("mis horas")) {
                     handleResumen(chatId, operador);
                 } else if (text.equals(BTN_AYUDA) || lower.equals("/menu") || lower.equals("menu") || lower.equals("hola") || lower.equals("ayuda") || lower.equals("/ayuda")) {
@@ -124,7 +124,7 @@ public class TelegramController {
         }
         String[] parts = text.split("\\s+");
         if (parts.length < 2) {
-            enviar(chatId, "⚙ *MaquiControl*\n\nPara vincular tu cuenta envía:\n*/start CODIGO*\n\nPide el código a tu administrador.");
+            enviar(chatId, "⚙ *Moventra*\n\nPara vincular tu cuenta envía:\n*/start CODIGO*\n\nPide el código a tu administrador.");
             return;
         }
         String code = parts[1].trim().toUpperCase();
@@ -132,7 +132,7 @@ public class TelegramController {
             op.setTelegramChatId(chatId);
             op.setTelegramLinkCode(null);
             operadorRepo.save(op);
-            enviarConMenu(chatId, "✅ ¡Hola *" + op.getNombre() + "*!\nTu cuenta está vinculada a MaquiControl.\n\nUsa los botones para registrar horas y gastos.");
+            enviarConMenu(chatId, "✅ ¡Hola *" + op.getNombre() + "*!\nTu cuenta está vinculada a Moventra.\n\nUsa los botones para registrar horas y gastos.");
         }, () -> enviar(chatId, "❌ Código inválido o ya usado.\nPide un nuevo código a tu administrador."));
     }
 
@@ -140,7 +140,7 @@ public class TelegramController {
 
     private void handleMenu(long chatId, Operador op) {
         enviarConMenu(chatId,
-            "⚙ *MaquiControl*\nHola *" + op.getNombre() + "*, ¿qué deseas hacer?\n\n" +
+            "⚙ *Moventra*\nHola *" + op.getNombre() + "*, ¿qué deseas hacer?\n\n" +
             "📎 También puedes enviar una foto o PDF de factura en cualquier momento.");
     }
 
@@ -153,7 +153,7 @@ public class TelegramController {
         double semana = horas.stream().filter(h -> h.getFecha() != null && !h.getFecha().isBefore(inicioSemana)).mapToDouble(HoraTrabajada::getHoras).sum();
         double mes    = horas.stream().filter(h -> h.getFecha() != null && !h.getFecha().isBefore(inicioMes)).mapToDouble(HoraTrabajada::getHoras).sum();
         enviarConMenu(chatId,
-            "⚙ *MaquiControl* — Tu resumen\n─────────────────\n" +
+            "⚙ *Moventra* — Tu resumen\n─────────────────\n" +
             "📅 Esta semana: *" + numFmt(semana) + "h*\n" +
             "📆 Este mes: *"    + numFmt(mes)    + "h*\n" +
             "─────────────────\n_¡Buen trabajo " + op.getNombre().split(" ")[0] + "!_");
@@ -165,7 +165,7 @@ public class TelegramController {
         ParsedHoras ph = parsearHoras(text, op);
         if (ph.horas <= 0) {
             enviarConMenu(chatId,
-                "⚙ *MaquiControl*\n\nNo entendí las horas. Ejemplos:\n" +
+                "⚙ *Moventra*\n\nNo entendí las horas. Ejemplos:\n" +
                 "• _8 horas_\n• _9h CAT 320_\n• _7.5 horas excavadora_");
             return;
         }
@@ -209,7 +209,7 @@ public class TelegramController {
         String maqTxt   = maq != null ? maq.getNombre() : "Sin máquina asignada";
 
         enviarConMenu(chatId,
-            "⚙ *MaquiControl*\n─────────────────\n" +
+            "⚙ *Moventra*\n─────────────────\n" +
             "✅ *" + numFmt(ph.horas) + "h registradas*\n" +
             "🚜 " + maqTxt + "\n" +
             "📅 " + fechaTxt + "\n" +
@@ -223,7 +223,7 @@ public class TelegramController {
         ParsedGasto pg = parsearGasto(text, op);
         if (pg.monto <= 0) {
             enviarConMenu(chatId,
-                "⚙ *MaquiControl*\n\nNo entendí el monto. Ejemplos:\n" +
+                "⚙ *Moventra*\n\nNo entendí el monto. Ejemplos:\n" +
                 "• _gasté $85.000 en filtro_\n• _gasto 150000 aceite CAT_\n• _compré repuesto 75000_");
             return;
         }
@@ -241,7 +241,7 @@ public class TelegramController {
         String maqLinea = gasto.getMaquinaNombre() != null ? "\n🚜 " + gasto.getMaquinaNombre() : "";
 
         enviarConMenu(chatId,
-            "⚙ *MaquiControl*\n─────────────────\n" +
+            "⚙ *Moventra*\n─────────────────\n" +
             "✅ *Gasto registrado*\n" +
             "💸 *" + montoFmt + "*\n" +
             "📝 " + pg.descripcion + maqLinea + "\n" +
@@ -285,7 +285,7 @@ public class TelegramController {
             return;
         }
         try {
-            enviar(chatId, "⚙ *MaquiControl*\nAnalizando factura con IA...");
+            enviar(chatId, "⚙ *Moventra*\nAnalizando factura con IA...");
 
             String base64 = java.util.Base64.getEncoder().encodeToString(data);
             boolean esPdf = "application/pdf".equals(mediaType);
@@ -348,7 +348,7 @@ public class TelegramController {
 
             String montoFmt = "$" + String.format("%,.0f", monto).replace(",", ".");
             enviarConMenu(chatId,
-                "⚙ *MaquiControl*\n─────────────────\n" +
+                "⚙ *Moventra*\n─────────────────\n" +
                 "✅ *Factura leída — gasto registrado*\n" +
                 "💸 *" + montoFmt + "*\n" +
                 "📝 " + descripcion + "\n" +
@@ -362,7 +362,7 @@ public class TelegramController {
             fp.data = data; fp.nombre = nombre;
             facturasPendientes.put(chatId, fp);
             enviarConMenu(chatId,
-                "⚙ *MaquiControl*\n\nNo pude leer el monto de la factura automáticamente.\n\n" +
+                "⚙ *Moventra*\n\nNo pude leer el monto de la factura automáticamente.\n\n" +
                 "¿Cuánto fue el total? Escríbelo y lo registro con la factura adjunta:\n_Ejemplo: 85000_");
         }
     }
@@ -373,12 +373,12 @@ public class TelegramController {
             .compile("\\$?\\s*(\\d{1,3}(?:[.,]\\d{3})*(?:[.,]\\d{1,2})?|\\d+)")
             .matcher(texto);
         if (!m.find()) {
-            enviarConMenu(chatId, "⚙ *MaquiControl*\n\nNo entendí el monto. Escríbelo así:\n_85000_ o _$85.000_");
+            enviarConMenu(chatId, "⚙ *Moventra*\n\nNo entendí el monto. Escríbelo así:\n_85000_ o _$85.000_");
             return;
         }
         double monto;
         try { monto = Double.parseDouble(m.group(1).replaceAll("[.,](?=\\d{3})", "").replace(',', '.')); }
-        catch (Exception e) { enviarConMenu(chatId, "⚙ *MaquiControl*\n\nNo entendí el monto. Intenta de nuevo."); return; }
+        catch (Exception e) { enviarConMenu(chatId, "⚙ *Moventra*\n\nNo entendí el monto. Intenta de nuevo."); return; }
 
         facturasPendientes.remove(chatId);
 
@@ -394,7 +394,7 @@ public class TelegramController {
 
         String montoFmt = "$" + String.format("%,.0f", monto).replace(",", ".");
         enviarConMenu(chatId,
-            "⚙ *MaquiControl*\n─────────────────\n" +
+            "⚙ *Moventra*\n─────────────────\n" +
             "✅ *Gasto registrado con factura*\n" +
             "💸 *" + montoFmt + "*\n" +
             "📎 Factura adjuntada\n" +

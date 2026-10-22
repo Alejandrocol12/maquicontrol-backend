@@ -255,9 +255,9 @@ public class AuthController {
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         Map<String, Object> payload = new HashMap<>();
-        payload.put("sender", Map.of("name", "MaquiControl", "email", brevoSenderEmail));
+        payload.put("sender", Map.of("name", "Moventra", "email", brevoSenderEmail));
         payload.put("to", List.of(Map.of("email", to)));
-        payload.put("subject", "MaquiControl — Código para cambiar contraseña");
+        payload.put("subject", "Moventra — Código para cambiar contraseña");
         payload.put("htmlContent", buildEmailRecuperacion(nombre, codigo));
 
         restTemplate.postForEntity("https://api.brevo.com/v3/smtp/email",
@@ -275,9 +275,9 @@ public class AuthController {
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         Map<String, Object> payload = new HashMap<>();
-        payload.put("sender", Map.of("name", "MaquiControl", "email", brevoSenderEmail));
+        payload.put("sender", Map.of("name", "Moventra", "email", brevoSenderEmail));
         payload.put("to", List.of(Map.of("email", to)));
-        payload.put("subject", "MaquiControl — Confirma tu nuevo correo");
+        payload.put("subject", "Moventra — Confirma tu nuevo correo");
         payload.put("htmlContent", buildEmailCambioCorreo(nombre, codigo));
 
         restTemplate.postForEntity("https://api.brevo.com/v3/smtp/email",

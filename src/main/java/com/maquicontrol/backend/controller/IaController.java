@@ -168,7 +168,7 @@ public class IaController {
         }
         LocalDate hoy = LocalDate.now(ZoneId.of("America/Bogota"));
 
-        String prompt = "Eres el asistente de MaquiControl, una app para negocios colombianos de alquiler de maquinaria pesada. " +
+        String prompt = "Eres el asistente de Moventra, una app para negocios colombianos de alquiler de maquinaria pesada. " +
             "Un usuario escribió (o dictó) esta frase sobre algo que pasó en obra: \"" + texto.replace("\"", "'") + "\"\n\n" +
             "Hoy es " + hoy + " (" + hoy.getDayOfWeek() + "). Máquinas de la empresa:\n" + flota +
             "\nConviértela en un registro. Guía de cómo se habla en Colombia:\n" +
