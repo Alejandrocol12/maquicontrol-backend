@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "enlaces_compartidos")
+@Table(name = "enlaces_compartidos", indexes = @Index(name = "idx_enlaces_compartidos_usuario", columnList = "usuarioId"))
 public class EnlaceCompartido {
 
     @Id

@@ -7,7 +7,7 @@ import java.time.LocalDate;
 // un Gasto categoria "Pago operador" enlazado por gastoGeneradoId, para que cuente en los
 // egresos una sola vez: se edita y se borra desde aqui y el gasto se actualiza solo.
 @Entity
-@Table(name = "pagos_operador")
+@Table(name = "pagos_operador", indexes = @Index(name = "idx_pagos_operador_usuario", columnList = "usuarioId"))
 public class PagoOperador {
 
     @Id

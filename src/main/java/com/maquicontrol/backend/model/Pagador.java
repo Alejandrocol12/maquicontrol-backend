@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 
 // Persona que paga gastos (socio, operador, la caja, un proveedor...). La lista la arma cada usuario.
 @Entity
-@Table(name = "pagadores")
+@Table(name = "pagadores", indexes = @Index(name = "idx_pagadores_usuario", columnList = "usuarioId"))
 public class Pagador {
 
     @Id

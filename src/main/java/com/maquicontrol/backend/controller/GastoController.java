@@ -1,6 +1,9 @@
 package com.maquicontrol.backend.controller;
 
 import com.maquicontrol.backend.model.Gasto;
+import com.maquicontrol.backend.repository.GastoRepository;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import com.maquicontrol.backend.service.GastoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -20,10 +23,20 @@ public class GastoController {
     @Autowired
     private GastoService gastoService;
 
+    @Autowired
+    private GastoRepository gastoRepository;
+
+    // Sin parámetros devuelve todo. Con size (y page desde 0) devuelve una página, la más reciente primero,
+    // y el total en la cabecera X-Total-Count.
     @GetMapping
-    public List<Gasto> obtenerTodos(Authentication auth) {
+    public ResponseEntity<List<Gasto>> obtenerTodos(Authentication auth,
+                                                    @RequestParam(required = false) Integer page,
+                                                    @RequestParam(required = false) Integer size) {
         Long userId = (Long) auth.getPrincipal();
-        return gastoService.obtenerTodos(userId);
+        if (size == null) return ResponseEntity.ok(gastoService.obtenerTodos(userId));
+        var pagina = gastoRepository.findByUsuarioId(userId, PageRequest.of(Math.max(page == null ? 0 : page, 0),
+                Math.min(Math.max(size, 1), 500), Sort.by(Sort.Direction.DESC, "fecha").and(Sort.by(Sort.Direction.DESC, "id"))));
+        return ResponseEntity.ok().header("X-Total-Count", String.valueOf(pagina.getTotalElements())).body(pagina.getContent());
     }
 
     @GetMapping("/{id}")

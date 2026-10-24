@@ -1,6 +1,8 @@
 package com.maquicontrol.backend.repository;
 
 import com.maquicontrol.backend.model.Gasto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -12,6 +14,7 @@ import java.util.List;
 @Repository
 public interface GastoRepository extends JpaRepository<Gasto, Long> {
     List<Gasto> findByUsuarioId(Long usuarioId);
+    Page<Gasto> findByUsuarioId(Long usuarioId, Pageable pageable);
     List<Gasto> findByUsuarioIdAndMaquinaNombre(Long usuarioId, String maquinaNombre);
     List<Gasto> findByMaquinaNombre(String maquinaNombre);
     void deleteByMaquinaNombre(String maquinaNombre);

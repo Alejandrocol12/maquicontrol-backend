@@ -3,7 +3,7 @@ package com.maquicontrol.backend.model;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "maquinaria")
+@Table(name = "maquinaria", indexes = @Index(name = "idx_maquinaria_usuario", columnList = "usuarioId"))
 public class Maquina {
 
     @Id

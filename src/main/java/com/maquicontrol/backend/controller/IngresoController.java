@@ -1,6 +1,9 @@
 package com.maquicontrol.backend.controller;
 
 import com.maquicontrol.backend.model.Ingreso;
+import com.maquicontrol.backend.repository.IngresoRepository;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import com.maquicontrol.backend.service.IngresoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -17,10 +20,20 @@ public class IngresoController {
     @Autowired
     private IngresoService ingresoService;
 
+    @Autowired
+    private IngresoRepository ingresoRepository;
+
+    // Sin parámetros devuelve todo. Con size (y page desde 0) devuelve una página, la más reciente primero,
+    // y el total en la cabecera X-Total-Count.
     @GetMapping
-    public List<Ingreso> obtenerTodos(Authentication auth) {
+    public ResponseEntity<List<Ingreso>> obtenerTodos(Authentication auth,
+                                                      @RequestParam(required = false) Integer page,
+                                                      @RequestParam(required = false) Integer size) {
         Long userId = (Long) auth.getPrincipal();
-        return ingresoService.obtenerTodos(userId);
+        if (size == null) return ResponseEntity.ok(ingresoService.obtenerTodos(userId));
+        var pagina = ingresoRepository.findByUsuarioId(userId, PageRequest.of(Math.max(page == null ? 0 : page, 0),
+                Math.min(Math.max(size, 1), 500), Sort.by(Sort.Direction.DESC, "fecha").and(Sort.by(Sort.Direction.DESC, "id"))));
+        return ResponseEntity.ok().header("X-Total-Count", String.valueOf(pagina.getTotalElements())).body(pagina.getContent());
     }
 
     @GetMapping("/{id}")

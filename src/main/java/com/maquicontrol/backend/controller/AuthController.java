@@ -47,6 +47,10 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Map<String, String> body, HttpServletRequest req) {
         String email = body.get("email");
+        String clave = body.get("password");
+        if (clave == null || clave.length() < 8) {
+            return ResponseEntity.badRequest().body(Map.of("error", "La contraseña debe tener al menos 8 caracteres"));
+        }
         if (usuarioRepo.existsByEmail(email)) {
             return ResponseEntity.badRequest().body(Map.of("error", "El correo ya está registrado"));
         }
@@ -116,8 +120,8 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("error", "Datos incompletos"));
         if (!codigoService.verificar(email, codigo))
             return ResponseEntity.badRequest().body(Map.of("error", "Código incorrecto o expirado"));
-        if (nueva.length() < 6)
-            return ResponseEntity.badRequest().body(Map.of("error", "La contraseña debe tener al menos 6 caracteres"));
+        if (nueva.length() < 8)
+            return ResponseEntity.badRequest().body(Map.of("error", "La contraseña debe tener al menos 8 caracteres"));
         return usuarioRepo.findByEmail(email).<ResponseEntity<?>>map(u -> {
             u.setPassword(passwordEncoder.encode(nueva));
             usuarioRepo.save(u);

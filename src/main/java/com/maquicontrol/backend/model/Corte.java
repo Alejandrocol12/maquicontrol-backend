@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 // las horas de ese tramo para saber cuanto se le cobra al cliente. Las mismas fechas sirven
 // para liquidarle al operador cuando conOperador es true.
 @Entity
-@Table(name = "cortes")
+@Table(name = "cortes", indexes = @Index(name = "idx_cortes_usuario", columnList = "usuarioId"))
 public class Corte {
 
     @Id
