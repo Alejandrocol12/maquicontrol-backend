@@ -1,7 +1,10 @@
 package com.maquicontrol.backend.controller;
 
 import com.maquicontrol.backend.config.JwtUtil;
+import com.maquicontrol.backend.config.Dispositivo;
+import com.maquicontrol.backend.model.SesionUsuario;
 import com.maquicontrol.backend.model.Usuario;
+import com.maquicontrol.backend.repository.SesionUsuarioRepository;
 import com.maquicontrol.backend.repository.UsuarioRepository;
 import com.maquicontrol.backend.service.CodigoVerificacionService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,15 +16,21 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
+import jakarta.servlet.http.HttpServletRequest;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
     @Autowired private UsuarioRepository usuarioRepo;
+    @Autowired private SesionUsuarioRepository sesionRepo;
     @Autowired private JwtUtil jwtUtil;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private CodigoVerificacionService codigoService;
@@ -36,7 +45,7 @@ public class AuthController {
     private String brevoSenderEmail;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody Map<String, String> body) {
+    public ResponseEntity<?> register(@RequestBody Map<String, String> body, HttpServletRequest req) {
         String email = body.get("email");
         if (usuarioRepo.existsByEmail(email)) {
             return ResponseEntity.badRequest().body(Map.of("error", "El correo ya está registrado"));
@@ -48,14 +57,14 @@ public class AuthController {
         u.setPassword(passwordEncoder.encode(body.get("password")));
         u.setRol("ADMIN");
         usuarioRepo.save(u);
-        return ResponseEntity.ok(buildResponse(u));
+        return ResponseEntity.ok(buildResponse(u, req));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
+    public ResponseEntity<?> login(@RequestBody Map<String, String> body, HttpServletRequest req) {
         return usuarioRepo.findByEmail(body.get("email"))
                 .filter(u -> u.isActivo() && passwordEncoder.matches(body.get("password"), u.getPassword()))
-                .map(u -> ResponseEntity.ok(buildResponse(u)))
+                .map(u -> ResponseEntity.ok(buildResponse(u, req)))
                 .orElse(ResponseEntity.status(401).body(Map.of("error", "Correo o contraseña incorrectos")));
     }
 
@@ -75,6 +84,10 @@ public class AuthController {
                 u.setNombre(body.get("nombre"));
             if (body.containsKey("empresa"))
                 u.setEmpresa(body.get("empresa"));
+            if (body.containsKey("nit")) u.setNit(limpio(body.get("nit"), 40));
+            if (body.containsKey("telefono")) u.setTelefono(limpio(body.get("telefono"), 40));
+            if (body.containsKey("ciudad")) u.setCiudad(limpio(body.get("ciudad"), 80));
+            if (body.containsKey("direccion")) u.setDireccion(limpio(body.get("direccion"), 160));
             usuarioRepo.save(u);
             return ResponseEntity.ok(userDto(u));
         }).orElse(ResponseEntity.status(401).build());
@@ -151,14 +164,14 @@ public class AuthController {
     }
 
     @PostMapping("/pin/login")
-    public ResponseEntity<?> loginPin(@RequestBody Map<String, String> body) {
+    public ResponseEntity<?> loginPin(@RequestBody Map<String, String> body, HttpServletRequest req) {
         String email = body.get("email");
         String pin = body.get("pin");
         if (email == null || pin == null)
             return ResponseEntity.badRequest().body(Map.of("error", "Email y PIN requeridos"));
         return usuarioRepo.findByEmail(email)
             .filter(u -> u.isActivo() && u.getPin() != null && passwordEncoder.matches(pin, u.getPin()))
-            .map(u -> ResponseEntity.ok(buildResponse(u)))
+            .map(u -> ResponseEntity.ok(buildResponse(u, req)))
             .orElse(ResponseEntity.status(401).body(Map.of("error", "Email o PIN incorrecto")));
     }
 
@@ -237,8 +250,8 @@ public class AuthController {
         if (!codigoService.verificar(u.getEmail(), body.get("codigo")))
             return ResponseEntity.badRequest().body(Map.of("error", "Código incorrecto o expirado"));
         String nueva = body.get("nueva");
-        if (nueva == null || nueva.length() < 6)
-            return ResponseEntity.badRequest().body(Map.of("error", "La nueva contraseña debe tener al menos 6 caracteres"));
+        if (nueva == null || nueva.length() < 8)
+            return ResponseEntity.badRequest().body(Map.of("error", "La nueva contraseña debe tener al menos 8 caracteres"));
         u.setPassword(passwordEncoder.encode(nueva));
         usuarioRepo.save(u);
         return ResponseEntity.ok(Map.of("ok", true));
@@ -362,8 +375,131 @@ public class AuthController {
         "</table></td></tr></table></body></html>";
     }
 
-    private Map<String, Object> buildResponse(Usuario u) {
-        return Map.of("token", jwtUtil.generate(u), "user", userDto(u));
+    private Map<String, Object> buildResponse(Usuario u, HttpServletRequest req) {
+        // Cada inicio de sesión abre una sesión nueva: así se puede ver dónde está abierta la cuenta y cerrarla
+        sesionRepo.borrarAnterioresA(LocalDateTime.now().minusDays(8));
+        SesionUsuario s = new SesionUsuario();
+        s.setId(UUID.randomUUID().toString());
+        s.setUsuarioId(u.getId());
+        s.setDispositivo(Dispositivo.describir(req.getHeader("User-Agent")));
+        s.setCreada(LocalDateTime.now());
+        s.setUltimaActividad(LocalDateTime.now());
+        sesionRepo.save(s);
+        return Map.of("token", jwtUtil.generate(u, s.getId()), "user", userDto(u));
+    }
+
+    private static String limpio(String v, int max) {
+        if (v == null) return null;
+        String t = v.trim();
+        return t.length() > max ? t.substring(0, max) : t;
+    }
+
+    // Fecha con zona (Z) para que el navegador la muestre en la hora de quien la mira
+    private static String instante(LocalDateTime t) {
+        return t == null ? null : t.atZone(java.time.ZoneId.systemDefault()).toInstant().toString();
+    }
+
+    private static Long uid(Authentication auth) {
+        return auth != null && auth.getPrincipal() instanceof Long id ? id : null;
+    }
+
+    private static String sidActual(Authentication auth) {
+        return auth != null && auth.getDetails() instanceof String sid ? sid : null;
+    }
+
+    // ── Sesiones ──────────────────────────────────────────────
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(Authentication auth) {
+        String sid = sidActual(auth);
+        if (sid != null) sesionRepo.findById(sid).ifPresent(s -> { s.setRevocada(true); sesionRepo.save(s); });
+        return ResponseEntity.ok(Map.of("ok", true));
+    }
+
+    @GetMapping("/sesiones")
+    public ResponseEntity<?> sesiones(Authentication auth) {
+        Long id = uid(auth);
+        if (id == null) return ResponseEntity.status(401).build();
+        String actual = sidActual(auth);
+        List<Map<String, Object>> lista = new ArrayList<>();
+        for (SesionUsuario s : sesionRepo.findByUsuarioIdAndRevocadaFalseAndCreadaAfterOrderByUltimaActividadDesc(id, LocalDateTime.now().minusDays(7))) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", s.getId());
+            m.put("dispositivo", s.getDispositivo());
+            m.put("creada", instante(s.getCreada()));
+            m.put("ultimaActividad", instante(s.getUltimaActividad()));
+            m.put("actual", s.getId().equals(actual));
+            lista.add(m);
+        }
+        return ResponseEntity.ok(lista);
+    }
+
+    @DeleteMapping("/sesiones/{sid}")
+    public ResponseEntity<?> cerrarSesion(@PathVariable String sid, Authentication auth) {
+        Long id = uid(auth);
+        if (id == null) return ResponseEntity.status(401).build();
+        return sesionRepo.findById(sid)
+                .filter(s -> s.getUsuarioId().equals(id))
+                .map(s -> { s.setRevocada(true); sesionRepo.save(s); return ResponseEntity.ok((Object) Map.of("ok", true)); })
+                .orElse(ResponseEntity.status(404).body(Map.of("ok", false)));
+    }
+
+    @PostMapping("/sesiones/cerrar-otras")
+    public ResponseEntity<?> cerrarOtras(Authentication auth) {
+        Long id = uid(auth);
+        if (id == null) return ResponseEntity.status(401).build();
+        String actual = sidActual(auth);
+        List<SesionUsuario> otras = new ArrayList<>();
+        for (SesionUsuario s : sesionRepo.findByUsuarioIdAndRevocadaFalseAndCreadaAfterOrderByUltimaActividadDesc(id, LocalDateTime.now().minusDays(7))) {
+            if (!s.getId().equals(actual)) { s.setRevocada(true); otras.add(s); }
+        }
+        sesionRepo.saveAll(otras);
+        return ResponseEntity.ok(Map.of("cerradas", otras.size()));
+    }
+
+    // ── Empresa (encabezado de los PDF) ───────────────────────
+
+    @GetMapping("/empresa")
+    public ResponseEntity<?> empresa(Authentication auth) {
+        Long id = uid(auth);
+        if (id == null) return ResponseEntity.status(401).build();
+        return usuarioRepo.findById(id).map(u -> {
+            Map<String, Object> m = new HashMap<>();
+            m.put("empresa", u.getEmpresa());
+            m.put("nit", u.getNit());
+            m.put("telefono", u.getTelefono());
+            m.put("ciudad", u.getCiudad());
+            m.put("direccion", u.getDireccion());
+            m.put("logo", u.getLogoEmpresa());
+            return ResponseEntity.ok((Object) m);
+        }).orElse(ResponseEntity.status(401).build());
+    }
+
+    @PutMapping("/logo-empresa")
+    public ResponseEntity<?> subirLogo(@RequestBody Map<String, String> body, Authentication auth) {
+        Long id = uid(auth);
+        if (id == null) return ResponseEntity.status(401).build();
+        String logo = body.get("logo");
+        if (logo == null || !logo.matches("(?s)^data:image/(png|jpeg);base64,[A-Za-z0-9+/=]+$"))
+            return ResponseEntity.badRequest().body(Map.of("error", "El logo debe ser una imagen PNG o JPG"));
+        if (logo.length() > 400_000)
+            return ResponseEntity.badRequest().body(Map.of("error", "El logo es muy pesado. Usa una imagen más pequeña."));
+        return usuarioRepo.findById(id).map(u -> {
+            u.setLogoEmpresa(logo);
+            usuarioRepo.save(u);
+            return ResponseEntity.ok((Object) userDto(u));
+        }).orElse(ResponseEntity.status(401).build());
+    }
+
+    @DeleteMapping("/logo-empresa")
+    public ResponseEntity<?> quitarLogo(Authentication auth) {
+        Long id = uid(auth);
+        if (id == null) return ResponseEntity.status(401).build();
+        return usuarioRepo.findById(id).map(u -> {
+            u.setLogoEmpresa(null);
+            usuarioRepo.save(u);
+            return ResponseEntity.ok((Object) userDto(u));
+        }).orElse(ResponseEntity.status(401).build());
     }
 
     private Map<String, Object> userDto(Usuario u) {
@@ -376,6 +512,11 @@ public class AuthController {
         dto.put("activo", u.isActivo());
         dto.put("operadorId", u.getOperadorId());
         dto.put("hasPin", u.getPin() != null);
+        dto.put("nit", u.getNit());
+        dto.put("telefono", u.getTelefono());
+        dto.put("ciudad", u.getCiudad());
+        dto.put("direccion", u.getDireccion());
+        dto.put("tieneLogo", u.getLogoEmpresa() != null && !u.getLogoEmpresa().isEmpty());
         return dto;
     }
 }

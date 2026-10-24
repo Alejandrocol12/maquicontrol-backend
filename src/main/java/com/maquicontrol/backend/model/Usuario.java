@@ -32,6 +32,15 @@ public class Usuario {
 
     private String pin;
 
+    // Datos de la empresa que salen en el encabezado de los PDF
+    private String nit;
+    private String telefono;
+    private String ciudad;
+    private String direccion;
+
+    @Column(columnDefinition = "LONGTEXT")
+    private String logoEmpresa;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -58,4 +67,19 @@ public class Usuario {
 
     public String getPin() { return pin; }
     public void setPin(String pin) { this.pin = pin; }
+
+    public String getNit() { return nit; }
+    public void setNit(String nit) { this.nit = nit; }
+
+    public String getTelefono() { return telefono; }
+    public void setTelefono(String telefono) { this.telefono = telefono; }
+
+    public String getCiudad() { return ciudad; }
+    public void setCiudad(String ciudad) { this.ciudad = ciudad; }
+
+    public String getDireccion() { return direccion; }
+    public void setDireccion(String direccion) { this.direccion = direccion; }
+
+    public String getLogoEmpresa() { return logoEmpresa; }
+    public void setLogoEmpresa(String logoEmpresa) { this.logoEmpresa = logoEmpresa; }
 }
