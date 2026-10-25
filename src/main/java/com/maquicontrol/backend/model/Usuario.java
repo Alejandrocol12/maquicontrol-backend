@@ -32,11 +32,6 @@ public class Usuario {
 
     private String pin;
 
-    // Telegram del dueño: recibe avisos (por ejemplo, lecturas del horómetro en revisión) y las aprueba desde el chat
-    private Long telegramChatId;
-    private String telegramLinkCode;
-    private java.time.LocalDateTime telegramLinkExpira;
-
     // Datos de la empresa que salen en el encabezado de los PDF
     private String nit;
     private String telefono;
@@ -87,13 +82,4 @@ public class Usuario {
 
     public String getLogoEmpresa() { return logoEmpresa; }
     public void setLogoEmpresa(String logoEmpresa) { this.logoEmpresa = logoEmpresa; }
-
-    public Long getTelegramChatId() { return telegramChatId; }
-    public void setTelegramChatId(Long telegramChatId) { this.telegramChatId = telegramChatId; }
-
-    public String getTelegramLinkCode() { return telegramLinkCode; }
-    public void setTelegramLinkCode(String telegramLinkCode) { this.telegramLinkCode = telegramLinkCode; }
-
-    public java.time.LocalDateTime getTelegramLinkExpira() { return telegramLinkExpira; }
-    public void setTelegramLinkExpira(java.time.LocalDateTime telegramLinkExpira) { this.telegramLinkExpira = telegramLinkExpira; }
 }
