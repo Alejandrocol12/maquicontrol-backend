@@ -8,6 +8,7 @@ import com.maquicontrol.backend.model.*;
 import com.maquicontrol.backend.repository.*;
 import com.maquicontrol.backend.service.GastoService;
 import com.maquicontrol.backend.service.HoraTrabajadaService;
+import com.maquicontrol.backend.service.HorometroService;
 import com.maquicontrol.backend.service.IngresoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,6 +41,7 @@ public class TelegramController {
     @Autowired private HoraTrabajadaService horaService;
     @Autowired private GastoService gastoService;
     @Autowired private IngresoService ingresoService;
+    @Autowired private HorometroService horometro;
 
     private final ObjectMapper mapper = new ObjectMapper();
     private final HttpClient http = HttpClient.newHttpClient();
@@ -60,6 +62,15 @@ public class TelegramController {
     public ResponseEntity<String> webhook(@RequestBody String payload) {
         try {
             JsonNode update = mapper.readTree(payload);
+
+            // Toque en un botón del mensaje (confirmar una lectura, aprobar o rechazar)
+            JsonNode cb = update.path("callback_query");
+            if (!cb.isMissingNode()) {
+                horometro.procesarCallback(cb.path("message").path("chat").path("id").asLong(),
+                    cb.path("message").path("message_id").asLong(), cb.path("id").asText(), cb.path("data").asText(""));
+                return ResponseEntity.ok("ok");
+            }
+
             JsonNode msg = update.path("message");
             if (msg.isMissingNode()) return ResponseEntity.ok("ok");
 
@@ -76,17 +87,39 @@ public class TelegramController {
                 return ResponseEntity.ok("ok");
             }
 
+            // El dueño vincula su Telegram con el código que genera en Perfil, y ve lo que espera su aprobación
+            String bajo = text.toLowerCase();
+            if (bajo.startsWith("/admin")) {
+                String[] partes = text.split("\\s+");
+                if (partes.length < 2 || !horometro.vincularDueno(chatId, partes[1]))
+                    enviar(chatId, "❌ Código inválido o vencido.\nGenera uno nuevo en Moventra → Perfil → Preferencias.");
+                return ResponseEntity.ok("ok");
+            }
+            if (bajo.startsWith("/pendientes") && horometro.esDueno(chatId)) {
+                horometro.pendientes(chatId);
+                return ResponseEntity.ok("ok");
+            }
+
             if (operador == null) {
+                if (horometro.esDueno(chatId)) {
+                    enviar(chatId, "Aquí recibes los avisos de tu empresa. Escribe /pendientes para ver las lecturas del horómetro que esperan tu aprobación.");
+                    return ResponseEntity.ok("ok");
+                }
                 enviar(chatId, "⚙ *Moventra*\n\nNo estás vinculado.\nPide el código a tu administrador y envía:\n*/start CODIGO*");
                 return ResponseEntity.ok("ok");
             }
 
             // Foto o documento → factura
             if (!photos.isMissingNode() && photos.isArray() && photos.size() > 0) {
-                handleFoto(chatId, photos, operador);
+                // Primero se mira si es el horómetro; si no, sigue el flujo de facturas de siempre
+                String fileId = photos.get(photos.size() - 1).path("file_id").asText();
+                if (!horometro.procesarFoto(chatId, operador, fileId)) handleFoto(chatId, photos, operador);
             } else if (!document.isMissingNode() && !document.isNull()) {
                 handleDocumento(chatId, document, operador);
             } else {
+                // Si el bot espera el número del horómetro, este mensaje es la respuesta
+                if (horometro.procesarTexto(chatId, operador, text)) return ResponseEntity.ok("ok");
+
                 String lower = text.toLowerCase();
 
                 // Respuesta al monto pendiente cuando la IA no pudo leer la factura

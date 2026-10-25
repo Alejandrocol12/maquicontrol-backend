@@ -461,6 +461,38 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("cerradas", otras.size()));
     }
 
+    // ── Telegram del dueño ────────────────────────────────────
+
+    // Genera un código de un solo uso (15 min). El dueño lo envía al bot como "/admin CODIGO".
+    @PostMapping("/telegram/codigo")
+    public ResponseEntity<?> codigoTelegram(Authentication auth) {
+        Long id = uid(auth);
+        if (id == null) return ResponseEntity.status(401).build();
+        return usuarioRepo.findById(id).map(u -> {
+            String alfabeto = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+            java.security.SecureRandom r = new java.security.SecureRandom();
+            StringBuilder c = new StringBuilder();
+            for (int i = 0; i < 6; i++) c.append(alfabeto.charAt(r.nextInt(alfabeto.length())));
+            u.setTelegramLinkCode(c.toString());
+            u.setTelegramLinkExpira(LocalDateTime.now().plusMinutes(15));
+            usuarioRepo.save(u);
+            return ResponseEntity.ok((Object) Map.of("codigo", c.toString(), "minutos", 15));
+        }).orElse(ResponseEntity.status(401).build());
+    }
+
+    @DeleteMapping("/telegram")
+    public ResponseEntity<?> desvincularTelegram(Authentication auth) {
+        Long id = uid(auth);
+        if (id == null) return ResponseEntity.status(401).build();
+        return usuarioRepo.findById(id).map(u -> {
+            u.setTelegramChatId(null);
+            u.setTelegramLinkCode(null);
+            u.setTelegramLinkExpira(null);
+            usuarioRepo.save(u);
+            return ResponseEntity.ok((Object) userDto(u));
+        }).orElse(ResponseEntity.status(401).build());
+    }
+
     // ── Empresa (encabezado de los PDF) ───────────────────────
 
     @GetMapping("/empresa")
@@ -516,6 +548,7 @@ public class AuthController {
         dto.put("activo", u.isActivo());
         dto.put("operadorId", u.getOperadorId());
         dto.put("hasPin", u.getPin() != null);
+        dto.put("telegramVinculado", u.getTelegramChatId() != null);
         dto.put("nit", u.getNit());
         dto.put("telefono", u.getTelefono());
         dto.put("ciudad", u.getCiudad());
