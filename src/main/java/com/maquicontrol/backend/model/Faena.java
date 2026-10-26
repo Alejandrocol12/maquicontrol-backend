@@ -24,6 +24,11 @@ public class Faena {
     private String tipo;
     private String nota;
 
+    // Ciclo del cliente para el pronóstico de horas: de qué fecha a qué fecha cuenta el corte y cuántas horas se espera hacer
+    private LocalDate corteDesde;
+    private LocalDate corteHasta;
+    private Double metaHorasCorte;
+
     private double totalIngresos;
     private double totalGastos;
     private double totalMantenimientos;
@@ -61,6 +66,15 @@ public class Faena {
 
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }
+
+    public LocalDate getCorteDesde() { return corteDesde; }
+    public void setCorteDesde(LocalDate corteDesde) { this.corteDesde = corteDesde; }
+
+    public LocalDate getCorteHasta() { return corteHasta; }
+    public void setCorteHasta(LocalDate corteHasta) { this.corteHasta = corteHasta; }
+
+    public Double getMetaHorasCorte() { return metaHorasCorte; }
+    public void setMetaHorasCorte(Double metaHorasCorte) { this.metaHorasCorte = metaHorasCorte; }
 
     public String getNota() { return nota; }
     public void setNota(String nota) { this.nota = nota; }

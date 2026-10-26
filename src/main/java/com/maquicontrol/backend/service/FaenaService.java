@@ -101,6 +101,20 @@ public class FaenaService {
         return faenaRepository.save(faena);
     }
 
+    // Fechas y meta de horas del corte según el cliente (los tres son opcionales: vacío = se quita)
+    @Transactional
+    public Faena actualizarCiclo(Long id, LocalDate desde, LocalDate hasta, Double meta) {
+        Faena faena = faenaRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Faena no encontrada"));
+        if (desde != null && hasta != null && hasta.isBefore(desde))
+            throw new IllegalArgumentException("La fecha del corte no puede ser antes de la fecha de inicio");
+        if (meta != null && meta < 0) throw new IllegalArgumentException("La meta de horas no puede ser negativa");
+        faena.setCorteDesde(desde);
+        faena.setCorteHasta(hasta);
+        faena.setMetaHorasCorte(meta != null && meta > 0 ? meta : null);
+        return faenaRepository.save(faena);
+    }
+
     @Transactional
     public Faena cerrar(Long id) {
         Faena faena = faenaRepository.findById(id)

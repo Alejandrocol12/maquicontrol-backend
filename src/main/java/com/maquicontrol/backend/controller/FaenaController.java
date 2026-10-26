@@ -58,6 +58,29 @@ public class FaenaController {
         return ResponseEntity.ok(faenaService.actualizar(id, faena));
     }
 
+    // Ciclo del cliente: { corteDesde, corteHasta, metaHorasCorte }, todos opcionales
+    @PutMapping("/{id}/ciclo")
+    public ResponseEntity<?> actualizarCiclo(@PathVariable Long id, @RequestBody java.util.Map<String, Object> body, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        Optional<Faena> existente = faenaService.obtenerPorId(id);
+        if (existente.isEmpty() || !userId.equals(existente.get().getUsuarioId())) {
+            return ResponseEntity.status(403).build();
+        }
+        try {
+            java.time.LocalDate desde = fechaOpc(body.get("corteDesde"));
+            java.time.LocalDate hasta = fechaOpc(body.get("corteHasta"));
+            Object m = body.get("metaHorasCorte");
+            Double meta = m == null || String.valueOf(m).isBlank() ? null : Double.valueOf(String.valueOf(m).replace(',', '.'));
+            return ResponseEntity.ok(faenaService.actualizarCiclo(id, desde, hasta, meta));
+        } catch (IllegalArgumentException | java.time.DateTimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e instanceof java.time.DateTimeException ? "Fecha no válida" : e.getMessage()));
+        }
+    }
+
+    private static java.time.LocalDate fechaOpc(Object v) {
+        return v == null || String.valueOf(v).isBlank() ? null : java.time.LocalDate.parse(String.valueOf(v).substring(0, 10));
+    }
+
     @PostMapping("/{id}/cerrar")
     public ResponseEntity<Faena> cerrar(@PathVariable Long id, Authentication auth) {
         Long userId = (Long) auth.getPrincipal();
