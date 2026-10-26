@@ -45,6 +45,8 @@ public class PagoOperadorService {
     public PagoOperador guardar(Long userId, PagoOperador pago) {
         pago.setUsuarioId(userId);
         pago.setGastoGeneradoId(null);
+        pago.setMetodoPago(limpio(pago.getMetodoPago()));
+        pago.setComprobante(limpio(pago.getComprobante()));
         if (pago.getFecha() == null) pago.setFecha(LocalDate.now());
         // La parte que cubre cortes ya causados no crea gasto; el resto (anticipos, por ejemplo) sí
         pago.setAplicado(causacion.aplicable(userId, pago.getOperadorNombre(),
@@ -61,6 +63,9 @@ public class PagoOperadorService {
         pago.setDescripcion(pagoActualizado.getDescripcion());
         pago.setMonto(pagoActualizado.getMonto());
         pago.setFecha(pagoActualizado.getFecha());
+        pago.setCorteId(pagoActualizado.getCorteId());
+        pago.setMetodoPago(limpio(pagoActualizado.getMetodoPago()));
+        pago.setComprobante(limpio(pagoActualizado.getComprobante()));
         // Se vuelve a repartir el pago entre cortes causados y gasto propio
         double aplicadoAntes = pago.getAplicado();
         pago.setAplicado(causacion.aplicable(pago.getUsuarioId(), pago.getOperadorNombre(),
@@ -113,6 +118,10 @@ public class PagoOperadorService {
             }
             pagoRepository.delete(pago);
         });
+    }
+
+    private static String limpio(String t) {
+        return t == null || t.trim().isEmpty() ? null : t.trim();
     }
 
     // Pagos anotados cuando Pago Operador era solo informativo: todavia no tienen gasto.

@@ -25,6 +25,11 @@ public class PagoOperador {
     // Parte del monto que cubrió cortes ya causados: no crea gasto, porque el gasto ya existe
     private Double aplicado;
 
+    // Datos del pago: a qué corte se imputa (opcional), cómo se pagó y su comprobante
+    private Long corteId;
+    private String metodoPago;
+    private String comprobante;
+
     public Long getGastoGeneradoId() { return gastoGeneradoId; }
     public void setGastoGeneradoId(Long gastoGeneradoId) { this.gastoGeneradoId = gastoGeneradoId; }
 
@@ -42,6 +47,15 @@ public class PagoOperador {
 
     public double getMonto() { return monto; }
     public void setMonto(double monto) { this.monto = monto; }
+
+    public Long getCorteId() { return corteId; }
+    public void setCorteId(Long corteId) { this.corteId = corteId; }
+
+    public String getMetodoPago() { return metodoPago; }
+    public void setMetodoPago(String metodoPago) { this.metodoPago = metodoPago; }
+
+    public String getComprobante() { return comprobante; }
+    public void setComprobante(String comprobante) { this.comprobante = comprobante; }
 
     public double getAplicado() { return aplicado == null ? 0 : aplicado; }
     public void setAplicado(Double aplicado) { this.aplicado = aplicado; }
