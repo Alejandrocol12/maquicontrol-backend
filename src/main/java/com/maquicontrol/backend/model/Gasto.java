@@ -39,12 +39,31 @@ public class Gasto {
     @Column(name = "factura_nombre")
     private String facturaNombre;
 
+    // Gasto del operador causado al hacer un corte: de qué corte viene, de quién, lo que ganó en el
+    // corte y lo que ya había ganado antes de empezarlo (sirve para saber cuánto de lo pagado lo cubre)
+    private Long corteId;
+    private String operadorNombre;
+    private Double ganadoCorte;
+    private Double acumuladoPrevio;
+
     // Getters y Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
     public Long getUsuarioId() { return usuarioId; }
     public void setUsuarioId(Long usuarioId) { this.usuarioId = usuarioId; }
+
+    public Long getCorteId() { return corteId; }
+    public void setCorteId(Long corteId) { this.corteId = corteId; }
+
+    public String getOperadorNombre() { return operadorNombre; }
+    public void setOperadorNombre(String operadorNombre) { this.operadorNombre = operadorNombre; }
+
+    public Double getGanadoCorte() { return ganadoCorte; }
+    public void setGanadoCorte(Double ganadoCorte) { this.ganadoCorte = ganadoCorte; }
+
+    public Double getAcumuladoPrevio() { return acumuladoPrevio; }
+    public void setAcumuladoPrevio(Double acumuladoPrevio) { this.acumuladoPrevio = acumuladoPrevio; }
 
     public String getDescripcion() { return descripcion; }
     public void setDescripcion(String descripcion) { this.descripcion = descripcion; }

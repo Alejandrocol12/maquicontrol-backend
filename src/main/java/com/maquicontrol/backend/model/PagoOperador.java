@@ -22,6 +22,9 @@ public class PagoOperador {
     private LocalDate fecha;
     private Long gastoGeneradoId;
 
+    // Parte del monto que cubrió cortes ya causados: no crea gasto, porque el gasto ya existe
+    private Double aplicado;
+
     public Long getGastoGeneradoId() { return gastoGeneradoId; }
     public void setGastoGeneradoId(Long gastoGeneradoId) { this.gastoGeneradoId = gastoGeneradoId; }
 
@@ -39,6 +42,9 @@ public class PagoOperador {
 
     public double getMonto() { return monto; }
     public void setMonto(double monto) { this.monto = monto; }
+
+    public double getAplicado() { return aplicado == null ? 0 : aplicado; }
+    public void setAplicado(Double aplicado) { this.aplicado = aplicado; }
 
     public LocalDate getFecha() { return fecha; }
     public void setFecha(LocalDate fecha) { this.fecha = fecha; }

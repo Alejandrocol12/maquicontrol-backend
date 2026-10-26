@@ -14,6 +14,7 @@ import java.util.List;
 @Repository
 public interface GastoRepository extends JpaRepository<Gasto, Long> {
     List<Gasto> findByUsuarioId(Long usuarioId);
+    List<Gasto> findByUsuarioIdAndCorteIdIsNotNull(Long usuarioId);
     Page<Gasto> findByUsuarioId(Long usuarioId, Pageable pageable);
     List<Gasto> findByUsuarioIdAndMaquinaNombre(Long usuarioId, String maquinaNombre);
     List<Gasto> findByMaquinaNombre(String maquinaNombre);

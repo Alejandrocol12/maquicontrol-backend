@@ -24,6 +24,7 @@ public class CorteService {
     @Autowired private IngresoRepository ingresoRepository;
     @Autowired private PagoClienteRepository pagoClienteRepository;
     @Autowired private PagoClienteService pagoClienteService;
+    @Autowired private CausacionOperadorService causacion;
 
     public List<Corte> obtenerTodos(Long userId) {
         return corteRepository.findByUsuarioId(userId);
@@ -85,7 +86,13 @@ public class CorteService {
             pago.setFecha(fin);
             corte.setPagoClienteId(pagoClienteService.guardar(userId, pago).getId());
         }
-        return corteRepository.save(corte);
+        Corte guardado = corteRepository.save(corte);
+        // El costo del operador se reconoce al cortar: un gasto por lo que ganó en el tramo, en $0 pagados
+        if (conOperador) {
+            int numeroCorte = (int) existentes.stream().filter(c -> c.getFechaInicio().isBefore(inicio)).count() + 1;
+            causacion.causarCorte(userId, guardado, faena, numeroCorte);
+        }
+        return guardado;
     }
 
     // Solo se puede deshacer el ultimo corte del periodo, para no dejar huecos en la mitad.
@@ -111,6 +118,8 @@ public class CorteService {
         if (!ultimo.getId().equals(corte.getId())) {
             throw new IllegalStateException("Solo se puede deshacer el último corte del periodo");
         }
+
+        causacion.borrarCausacion(userId, corte);
 
         if (corte.getPagoClienteId() != null) {
             pagoClienteRepository.findById(corte.getPagoClienteId())

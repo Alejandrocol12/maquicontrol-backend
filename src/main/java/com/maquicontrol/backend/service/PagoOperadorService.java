@@ -27,6 +27,7 @@ public class PagoOperadorService {
     @Autowired private MaquinaRepository maquinaRepository;
     @Autowired private FaenaRepository faenaRepository;
     @Autowired private FaenaService faenaService;
+    @Autowired private CausacionOperadorService causacion;
 
     public List<PagoOperador> obtenerTodos(Long userId) {
         return pagoRepository.findByUsuarioId(userId);
@@ -45,8 +46,11 @@ public class PagoOperadorService {
         pago.setUsuarioId(userId);
         pago.setGastoGeneradoId(null);
         if (pago.getFecha() == null) pago.setFecha(LocalDate.now());
+        // La parte que cubre cortes ya causados no crea gasto; el resto (anticipos, por ejemplo) sí
+        pago.setAplicado(causacion.aplicable(userId, pago.getOperadorNombre(),
+            causacion.pagadoTotal(userId, pago.getOperadorNombre(), null), pago.getMonto()));
         PagoOperador saved = pagoRepository.save(pago);
-        return crearGasto(saved);
+        return saved.getMonto() - saved.getAplicado() > 0.5 ? crearGasto(saved) : saved;
     }
 
     @Transactional
@@ -57,7 +61,26 @@ public class PagoOperadorService {
         pago.setDescripcion(pagoActualizado.getDescripcion());
         pago.setMonto(pagoActualizado.getMonto());
         pago.setFecha(pagoActualizado.getFecha());
+        // Se vuelve a repartir el pago entre cortes causados y gasto propio
+        double aplicadoAntes = pago.getAplicado();
+        pago.setAplicado(causacion.aplicable(pago.getUsuarioId(), pago.getOperadorNombre(),
+            causacion.pagadoTotal(pago.getUsuarioId(), pago.getOperadorNombre(), pago.getId()), pago.getMonto()));
         PagoOperador saved = pagoRepository.save(pago);
+        if (saved.getMonto() - saved.getAplicado() <= 0.5) {
+            // todo el pago cae en cortes causados: ya no necesita gasto propio
+            if (saved.getGastoGeneradoId() != null) {
+                Long viejo = saved.getGastoGeneradoId();
+                saved.setGastoGeneradoId(null);
+                saved = pagoRepository.save(saved);
+                gastoRepository.findById(viejo).ifPresent(g -> {
+                    gastoRepository.delete(g);
+                    faenaService.recalcularTotalesSiCerrada(g.getFaenaId());
+                });
+            }
+            return saved;
+        }
+        // antes caía entero en un corte y ahora le sobra una parte: esa parte sí es gasto
+        if (saved.getGastoGeneradoId() == null && aplicadoAntes > 0.5) return crearGasto(saved);
 
         // Si el pago ya tenia su gasto, se actualiza el mismo; si era un pago viejo que
         // todavia no se habia pasado a Gastos, se deja como estaba.
@@ -95,7 +118,7 @@ public class PagoOperadorService {
     // Pagos anotados cuando Pago Operador era solo informativo: todavia no tienen gasto.
     public List<PagoOperador> sinGasto(Long userId) {
         return pagoRepository.findByUsuarioId(userId).stream()
-            .filter(p -> p.getGastoGeneradoId() == null)
+            .filter(p -> p.getGastoGeneradoId() == null && p.getMonto() - p.getAplicado() > 0.5)
             .sorted(Comparator.comparing(PagoOperador::getFecha, Comparator.nullsLast(Comparator.naturalOrder())))
             .toList();
     }
@@ -127,7 +150,7 @@ public class PagoOperadorService {
             : "Pago operador — " + pago.getOperadorNombre();
         g.setDescripcion(desc);
         g.setCategoria(CATEGORIA);
-        g.setMonto(pago.getMonto());
+        g.setMonto(pago.getMonto() - pago.getAplicado()); // solo la parte que no cae en un corte ya causado
         g.setFecha(pago.getFecha());
 
         String maquina = maquinaRepository.findByUsuarioIdAndOperadorNombre(pago.getUsuarioId(), pago.getOperadorNombre())
